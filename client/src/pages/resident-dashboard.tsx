@@ -14,7 +14,7 @@ import { portraitStyles, stylePreviewImages, getStylesBySpecies } from "@/lib/po
 
 export default function ResidentDashboard() {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading: authLoading, logout, isLoggingOut, session } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading: authLoading, logout, isLoggingOut, session } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [addPetOpen, setAddPetOpen] = useState(false);
@@ -118,6 +118,11 @@ export default function ResidentDashboard() {
 
   if (!authLoading && !isAuthenticated) { setLocation("/login"); return null; }
   if (authLoading || communityLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
+
+  if (!community && isAdmin) {
+    setLocation("/admin");
+    return null;
+  }
 
   if (!community) {
     return (

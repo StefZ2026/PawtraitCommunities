@@ -5,20 +5,18 @@ import { pool } from "../db";
 import { storage } from "../storage";
 import { isStripeConfigured, createSubscriptionCheckout, handleSubscriptionEvent, getStripe } from "../stripe";
 import { createConnectOnboarding, checkConnectStatus } from "../stripe-connect";
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+import { isAdmin } from "./helpers";
 
 export function registerBillingRoutes(app: Express): void {
   // Create checkout session for community subscription
-  app.post("/api/billing/checkout", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/billing/checkout", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
-      if (req.user.claims.email !== ADMIN_EMAIL) return res.status(403).json({ error: "Admin only" });
       if (!isStripeConfigured()) return res.status(503).json({ error: "Stripe not configured" });
 
       const { orgId, billing } = req.body;
       if (!orgId) return res.status(400).json({ error: "orgId required" });
 
-      const returnUrl = `${process.env.APP_URL || "https://pawtrait-communities.onrender.com"}/admin`;
+      const returnUrl = `${process.env.APP_URL || "https://pawtraitcommunities.com"}/admin`;
       const checkoutUrl = await createSubscriptionCheckout(orgId, returnUrl, billing === "monthly" ? "monthly" : "annual");
       res.json({ url: checkoutUrl });
     } catch (err: any) {
@@ -27,10 +25,9 @@ export function registerBillingRoutes(app: Express): void {
     }
   });
 
-  // Activate free trial (30 days)
-  app.post("/api/billing/free-trial", isAuthenticated, async (req: any, res: Response) => {
+  // Activate free trial (14 days)
+  app.post("/api/billing/free-trial", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
-      if (req.user.claims.email !== ADMIN_EMAIL) return res.status(403).json({ error: "Admin only" });
       const { orgId } = req.body;
       if (!orgId) return res.status(400).json({ error: "orgId required" });
 
@@ -63,6 +60,7 @@ export function registerBillingRoutes(app: Express): void {
         subscriptionStatus: org.subscriptionStatus,
         planName: plan?.name || "None",
         priceAnnual: plan?.priceAnnualCents ? `$${(plan.priceAnnualCents / 100).toFixed(0)}` : null,
+        priceMonthly: (plan as any)?.priceMonthlyCents ? `$${((plan as any).priceMonthlyCents / 100).toFixed(0)}` : null,
         startDate: (org as any).subscriptionStartDate,
         endDate: (org as any).subscriptionEndDate,
         hasConnect: !!org.stripeConnectAccountId,
@@ -74,11 +72,10 @@ export function registerBillingRoutes(app: Express): void {
   });
 
   // Start Stripe Connect onboarding for a community
-  app.post("/api/billing/connect-onboarding", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/billing/connect-onboarding", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
-      if (req.user.claims.email !== ADMIN_EMAIL) return res.status(403).json({ error: "Admin only" });
       const { orgId } = req.body;
-      const returnUrl = `${process.env.APP_URL || "https://pawtrait-communities.onrender.com"}/admin`;
+      const returnUrl = `${process.env.APP_URL || "https://pawtraitcommunities.com"}/admin`;
       const url = await createConnectOnboarding(orgId, returnUrl);
       res.json({ url });
     } catch (err: any) {

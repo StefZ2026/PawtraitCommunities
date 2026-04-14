@@ -2,15 +2,15 @@ import type { Express, Request, Response } from "express";
 import { pool } from "../db";
 import { storage } from "../storage";
 import { isAuthenticated } from "../auth";
+import { isAdmin } from "./helpers";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 export function registerCommunityRoutes(app: Express): void {
 
   // Admin: Create community
-  app.post("/api/admin/communities", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/admin/communities", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
-      if (req.user.claims.email !== ADMIN_EMAIL) return res.status(403).json({ error: "Admin only" });
       const { name, slug, totalHomes, contactName, contactEmail, contactPhone, locationStreet, locationCity, locationState, locationZip } = req.body;
       if (!name || !slug || !totalHomes) return res.status(400).json({ error: "Name, slug, and total homes are required" });
 
@@ -35,10 +35,44 @@ export function registerCommunityRoutes(app: Express): void {
     } catch (error: any) { console.error("Error creating community:", error.message); res.status(500).json({ error: "Failed to create community" }); }
   });
 
-  // Admin: List communities
-  app.get("/api/admin/communities", isAuthenticated, async (req: any, res: Response) => {
+  // Admin: Edit community
+  app.patch("/api/admin/communities/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
-      if (req.user.claims.email !== ADMIN_EMAIL) return res.status(403).json({ error: "Admin only" });
+      const orgId = parseInt(req.params.id);
+      const { name, slug, totalHomes, contactName, contactEmail, contactPhone, planId } = req.body;
+      const updates: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+      if (name !== undefined) { updates.push(`name = $${idx++}`); values.push(name); }
+      if (slug !== undefined) { updates.push(`slug = $${idx++}`); values.push(slug); }
+      if (totalHomes !== undefined) { updates.push(`total_homes = $${idx++}`); values.push(totalHomes); }
+      if (contactName !== undefined) { updates.push(`contact_name = $${idx++}`); values.push(contactName); }
+      if (contactEmail !== undefined) { updates.push(`contact_email = $${idx++}`); values.push(contactEmail); }
+      if (contactPhone !== undefined) { updates.push(`contact_phone = $${idx++}`); values.push(contactPhone); }
+      if (planId !== undefined) { updates.push(`plan_id = $${idx++}`); values.push(planId); }
+      if (updates.length === 0) return res.status(400).json({ error: "Nothing to update" });
+      values.push(orgId);
+      await pool.query(`UPDATE organizations SET ${updates.join(", ")} WHERE id = $${idx}`, values);
+      const org = await storage.getOrganization(orgId);
+      res.json(org);
+    } catch (error: any) { console.error("Error updating community:", error.message); res.status(500).json({ error: "Failed" }); }
+  });
+
+  // Admin: Delete community
+  app.delete("/api/admin/communities/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.id);
+      const org = await storage.getOrganization(orgId);
+      if (!org) return res.status(404).json({ error: "Community not found" });
+      await pool.query("DELETE FROM organizations WHERE id = $1", [orgId]);
+      console.log(`[admin] Deleted community ${orgId} (${org.name})`);
+      res.json({ success: true });
+    } catch (error: any) { console.error("Error deleting community:", error.message); res.status(500).json({ error: "Failed" }); }
+  });
+
+  // Admin: List communities
+  app.get("/api/admin/communities", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
       const orgs = await storage.getAllOrganizations();
       const communities = await Promise.all(orgs.map(async (org) => {
         const [r, d, p] = await Promise.all([
