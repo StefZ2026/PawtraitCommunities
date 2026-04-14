@@ -8,14 +8,14 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 
 const STYLE_PREVIEWS = [
-  { name: "Renaissance Noble", src: "/images/styles/renaissance-noble.jpg?v=2" },
-  { name: "Superhero", src: "/images/styles/superhero.jpg?v=2" },
-  { name: "Holiday Spirit", src: "/images/styles/holiday-spirit.jpg?v=2" },
-  { name: "Art Nouveau Beauty", src: "/images/styles/art-nouveau.jpg?v=2" },
-  { name: "Egyptian Royalty", src: "/images/styles/egyptian-royalty.jpg?v=2" },
-  { name: "Purrista Barista", src: "/images/styles/purrista-barista.jpg?v=2" },
-  { name: "Pool Party", src: "/images/styles/pool-party.jpg?v=2" },
-  { name: "Spring Blossoms", src: "/images/styles/spring-blossoms.jpg?v=2" },
+  { name: "Baroque Aristocrat", src: "/images/styles/baroque-aristocrat.jpg" },
+  { name: "Beach Day", src: "/images/styles/beach-day.jpg" },
+  { name: "Steampunk Explorer", src: "/images/styles/steampunk-explorer.jpg" },
+  { name: "Sleepover Party", src: "/images/styles/sleepover-party.jpg" },
+  { name: "Purrista Barista", src: "/images/styles/purrista-barista.jpg" },
+  { name: "Cozy Cabin", src: "/images/styles/cozy-cabin.jpg" },
+  { name: "Space Explorer", src: "/images/styles/space-explorer.jpg" },
+  { name: "Victorian Lady", src: "/images/styles/victorian-lady.jpg" },
 ];
 
 export default function Home() {
