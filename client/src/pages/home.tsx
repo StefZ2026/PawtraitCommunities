@@ -228,7 +228,7 @@ export default function Home() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-serif font-bold mb-4">Ready to See Your Pet as a Masterpiece?</h2>
           <p className="text-primary-foreground/80 mb-8 max-w-xl mx-auto">
-            Ask your HOA for your community code and join today.
+            Ask your community manager for your community code and join today.
             It's free for residents — your community subscription covers everything.
           </p>
           {isAuthenticated ? (

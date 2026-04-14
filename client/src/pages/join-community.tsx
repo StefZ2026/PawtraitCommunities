@@ -81,7 +81,7 @@ export default function JoinCommunity() {
         <CardHeader className="text-center">
           <Dog className="h-10 w-10 mx-auto mb-2 text-primary" />
           <h1 className="text-2xl font-serif font-bold">Join Your Community</h1>
-          {step === "code" && <p className="text-sm text-muted-foreground">Enter the code your HOA provided</p>}
+          {step === "code" && <p className="text-sm text-muted-foreground">Enter the code your community provided</p>}
           {step === "details" && <p className="text-sm text-muted-foreground">Welcome to {communityName}!</p>}
         </CardHeader>
         <CardContent>
