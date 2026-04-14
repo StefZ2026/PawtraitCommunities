@@ -12,17 +12,170 @@ const planDefinitions = [
 export async function seedDatabase() {
   console.log("Checking if seed data exists...");
 
-  // ─── Migrations ───
+  // ─── Create base tables (fresh database) ───
   try {
-    const migTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 10000));
+    const migTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 30000));
     await Promise.race([
       (async () => {
-        await pool.query("SET LOCAL statement_timeout = 8000");
-        await pool.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS community_code VARCHAR(20) UNIQUE");
-        await pool.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS total_homes INTEGER");
-        await pool.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_start_date TIMESTAMP");
-        await pool.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMP");
-        console.log("[migration] Community org columns ready");
+        // Users table (auth)
+        await pool.query(`CREATE TABLE IF NOT EXISTS users (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          email VARCHAR UNIQUE, first_name VARCHAR, last_name VARCHAR,
+          profile_image_url VARCHAR, terms_accepted_at TIMESTAMP, privacy_accepted_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+        )`);
+        console.log("[migration] Users table ready");
+
+        // Subscription plans
+        await pool.query(`CREATE TABLE IF NOT EXISTS subscription_plans (
+          id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT,
+          price_annual_cents INTEGER NOT NULL DEFAULT 0, size_tier TEXT NOT NULL DEFAULT 'small',
+          max_homes INTEGER NOT NULL DEFAULT 100,
+          stripe_product_id TEXT, stripe_price_id TEXT, stripe_live_price_id TEXT, stripe_product_live_id TEXT,
+          is_active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log("[migration] Subscription plans table ready");
+
+        // Organizations
+        await pool.query(`CREATE TABLE IF NOT EXISTS organizations (
+          id SERIAL PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
+          community_code VARCHAR(20) UNIQUE, total_homes INTEGER,
+          description TEXT, website_url TEXT, logo_url TEXT,
+          contact_name TEXT, contact_email TEXT, contact_phone TEXT,
+          social_facebook TEXT, social_instagram TEXT, social_nextdoor TEXT,
+          location_street TEXT, location_city TEXT, location_state TEXT, location_zip TEXT, location_country TEXT,
+          billing_street TEXT, billing_city TEXT, billing_state TEXT, billing_zip TEXT, billing_country TEXT,
+          species_handled TEXT DEFAULT 'both', onboarding_completed BOOLEAN NOT NULL DEFAULT false, is_active BOOLEAN NOT NULL DEFAULT true,
+          owner_id VARCHAR, plan_id INTEGER REFERENCES subscription_plans(id),
+          stripe_customer_id TEXT, stripe_subscription_id TEXT,
+          subscription_status TEXT DEFAULT 'pending', subscription_start_date TIMESTAMP, subscription_end_date TIMESTAMP,
+          stripe_connect_account_id TEXT, stripe_connect_onboarding_complete BOOLEAN DEFAULT false,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log("[migration] Organizations table ready");
+
+        // Residents
+        await pool.query(`CREATE TABLE IF NOT EXISTS residents (
+          id SERIAL PRIMARY KEY, supabase_auth_id VARCHAR NOT NULL,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          home_number VARCHAR(20) NOT NULL, display_name TEXT, email TEXT NOT NULL, phone TEXT,
+          role TEXT NOT NULL DEFAULT 'resident', notification_preference TEXT DEFAULT 'email',
+          is_active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log("[migration] Residents table ready");
+
+        // Dogs
+        await pool.query(`CREATE TABLE IF NOT EXISTS dogs (
+          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          resident_id INTEGER REFERENCES residents(id) ON DELETE CASCADE,
+          name TEXT NOT NULL, species TEXT NOT NULL DEFAULT 'dog', breed TEXT, age TEXT, description TEXT,
+          original_photo_url TEXT, is_available BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log("[migration] Dogs table ready");
+
+        // Portrait styles
+        await pool.query(`CREATE TABLE IF NOT EXISTS portrait_styles (
+          id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL,
+          prompt_template TEXT NOT NULL, preview_image_url TEXT, category TEXT NOT NULL
+        )`);
+        console.log("[migration] Portrait styles table ready");
+
+        // Portraits
+        await pool.query(`CREATE TABLE IF NOT EXISTS portraits (
+          id SERIAL PRIMARY KEY, dog_id INTEGER NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+          style_id INTEGER NOT NULL REFERENCES portrait_styles(id),
+          generated_image_url TEXT, previous_image_url TEXT, edit_count INTEGER NOT NULL DEFAULT 0,
+          opt_out_gallery BOOLEAN NOT NULL DEFAULT false, like_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log("[migration] Portraits table ready");
+
+        // Portrait likes
+        await pool.query(`CREATE TABLE IF NOT EXISTS portrait_likes (
+          id SERIAL PRIMARY KEY, portrait_id INTEGER NOT NULL REFERENCES portraits(id) ON DELETE CASCADE,
+          resident_id INTEGER NOT NULL REFERENCES residents(id) ON DELETE CASCADE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(portrait_id, resident_id)
+        )`);
+        console.log("[migration] Portrait likes ready");
+
+        // Merch orders (future)
+        await pool.query(`CREATE TABLE IF NOT EXISTS merch_orders (
+          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          resident_id INTEGER REFERENCES residents(id), dog_id INTEGER REFERENCES dogs(id),
+          portrait_id INTEGER REFERENCES portraits(id),
+          customer_name TEXT NOT NULL, customer_email TEXT, customer_phone TEXT,
+          shipping_street TEXT NOT NULL, shipping_city TEXT NOT NULL, shipping_state TEXT NOT NULL,
+          shipping_zip TEXT NOT NULL, shipping_country TEXT NOT NULL DEFAULT 'US',
+          fulfillment_provider TEXT DEFAULT 'printful', external_order_id TEXT, external_status TEXT,
+          stripe_payment_intent_id TEXT, total_cents INTEGER NOT NULL,
+          shipping_cents INTEGER NOT NULL DEFAULT 0, tax_cents INTEGER NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS merch_order_items (
+          id SERIAL PRIMARY KEY, order_id INTEGER NOT NULL REFERENCES merch_orders(id) ON DELETE CASCADE,
+          product_key TEXT NOT NULL, variant_id INTEGER, quantity INTEGER NOT NULL DEFAULT 1,
+          price_cents INTEGER NOT NULL, wholesale_cost_cents INTEGER, calendar_project_id INTEGER,
+          occasion TEXT, artwork_url TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS merch_earnings (
+          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id),
+          merch_order_id INTEGER NOT NULL REFERENCES merch_orders(id),
+          retail_cents INTEGER NOT NULL, wholesale_cents INTEGER NOT NULL, margin_cents INTEGER NOT NULL,
+          community_share_cents INTEGER, platform_share_cents INTEGER, payout_id INTEGER,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS merch_payouts (
+          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id),
+          amount_cents INTEGER NOT NULL, stripe_transfer_id TEXT,
+          period_start TIMESTAMP NOT NULL, period_end TIMESTAMP NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending', initiated_by TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, completed_at TIMESTAMP
+        )`);
+        console.log("[migration] Merch tables ready");
+
+        // Future tables
+        await pool.query(`CREATE TABLE IF NOT EXISTS calendar_projects (
+          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          resident_id INTEGER NOT NULL REFERENCES residents(id) ON DELETE CASCADE,
+          dog_id INTEGER NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+          calendar_year INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'uploading',
+          uploaded_photo_count INTEGER NOT NULL DEFAULT 0, generated_image_count INTEGER NOT NULL DEFAULT 0,
+          selected_image_count INTEGER NOT NULL DEFAULT 0, price_cents INTEGER NOT NULL DEFAULT 7500,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS calendar_project_images (
+          id SERIAL PRIMARY KEY, calendar_project_id INTEGER NOT NULL REFERENCES calendar_projects(id) ON DELETE CASCADE,
+          image_type TEXT NOT NULL, image_url TEXT NOT NULL, style_id INTEGER REFERENCES portrait_styles(id),
+          month_assignment INTEGER, sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS pet_wall_periods (
+          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          quarter INTEGER NOT NULL, year INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+          finalized_at TIMESTAMP, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(organization_id, year, quarter)
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS pet_wall_entries (
+          id SERIAL PRIMARY KEY, pet_wall_period_id INTEGER NOT NULL REFERENCES pet_wall_periods(id) ON DELETE CASCADE,
+          portrait_id INTEGER NOT NULL REFERENCES portraits(id), rank INTEGER NOT NULL,
+          like_count_at_selection INTEGER NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
+          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          resident_id INTEGER REFERENCES residents(id) ON DELETE SET NULL, channel TEXT NOT NULL,
+          recipient_address TEXT NOT NULL, subject TEXT, message_body TEXT NOT NULL,
+          notification_type TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+          sent_at TIMESTAMP, error TEXT, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log("[migration] All tables ready");
 
         await pool.query("ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_annual_cents INTEGER");
         await pool.query("ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS size_tier TEXT");
