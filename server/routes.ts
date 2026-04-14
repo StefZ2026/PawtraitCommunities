@@ -4,6 +4,9 @@ import rateLimit from "express-rate-limit";
 import { registerAuthRoutes } from "./auth";
 import { registerCommunityRoutes } from "./routes/communities";
 import { registerPortraitRoutes } from "./routes/portraits";
+import { registerBillingRoutes } from "./routes/billing";
+import { registerMerchRoutes } from "./routes/merch";
+import { registerSmsRoutes } from "./routes/sms";
 
 const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000, max: 600,
@@ -18,5 +21,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.use("/api/", apiRateLimiter);
   registerCommunityRoutes(app);
   registerPortraitRoutes(app);
+  registerBillingRoutes(app);
+  registerMerchRoutes(app);
+  registerSmsRoutes(app);
   return httpServer;
 }

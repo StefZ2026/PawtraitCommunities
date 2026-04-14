@@ -27,6 +27,23 @@ app.disable("x-powered-by");
 const httpServer = createServer(app);
 setupWebSocket(httpServer);
 
+// Stripe webhook — MUST be before express.json() for raw body signature verification
+app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  try {
+    const { handleSubscriptionEvent, getStripe } = await import("./stripe");
+    const sig = req.headers["stripe-signature"];
+    if (!sig) return res.status(400).json({ error: "Missing signature" });
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) return res.status(500).json({ error: "Webhook secret not configured" });
+    const event = getStripe().webhooks.constructEvent(req.body, Array.isArray(sig) ? sig[0] : sig, webhookSecret);
+    await handleSubscriptionEvent(event);
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error("[stripe-webhook] Error:", err.message);
+    res.status(400).json({ error: "Webhook error" });
+  }
+});
+
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: false }));
 
