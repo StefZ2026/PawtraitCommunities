@@ -23,7 +23,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/join" component={JoinCommunity} />
       <Route path="/dashboard" component={ResidentDashboard} />
-      <Route path="/gallery/:slug" component={Gallery} />
+      <Route path="/:slug" component={Gallery} />
       <Route path="/admin" component={Admin} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />

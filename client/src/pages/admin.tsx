@@ -78,7 +78,7 @@ export default function Admin() {
               <DialogHeader><DialogTitle>Create a Community</DialogTitle></DialogHeader>
               <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
                 <div><Label>Community Name</Label><Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Soleil at Lakewood Ranch" required /></div>
-                <div><Label>URL Slug</Label><Input value={slug} onChange={(e) => setSlug(e.target.value)} required /><p className="text-xs text-muted-foreground mt-1">pawtraitcommunities.com/gallery/{slug || "..."}</p></div>
+                <div><Label>URL Slug</Label><Input value={slug} onChange={(e) => setSlug(e.target.value)} required /><p className="text-xs text-muted-foreground mt-1">pawtraitcommunities.com/{slug || "..."}</p></div>
                 <div><Label>Total Homes</Label><Input type="number" value={totalHomes} onChange={(e) => setTotalHomes(e.target.value)} placeholder="e.g. 700" required min="1" /></div>
                 <div><Label>HOA Contact Name</Label><Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Optional" /></div>
                 <div><Label>HOA Contact Email</Label><Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optional" /></div>

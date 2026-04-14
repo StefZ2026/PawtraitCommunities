@@ -95,7 +95,7 @@ export default function ResidentDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/gallery/${community.communitySlug}`}><Heart className="h-4 w-4 mr-1" />Gallery</Link>
+              <Link href={`/${community.communitySlug}`}><Heart className="h-4 w-4 mr-1" />Gallery</Link>
             </Button>
             <Button variant="ghost" size="icon" onClick={() => logout()} disabled={isLoggingOut}><LogOut className="h-4 w-4" /></Button>
           </div>
