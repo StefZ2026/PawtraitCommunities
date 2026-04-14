@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
+  Building2, Plus, Users, Dog, Cat, Image, CreditCard, Gift, Copy, ExternalLink,
   Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle, X,
   Wallet, MessageSquare
 } from "lucide-react";
@@ -214,7 +214,7 @@ export default function Admin() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1.5 font-serif font-bold text-xl text-primary">
-            <Building2 className="h-5 w-5" />Pawtrait Communities
+            <span className="flex items-center gap-0.5"><Dog className="h-5 w-5" /><Cat className="h-5 w-5" /></span>Pawtrait Communities
           </Link>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="gap-1">Admin</Badge>
