@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
 import { CookieConsent } from "@/components/cookie-consent";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
@@ -42,6 +43,7 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="pawtrait-communities-theme">
         <TooltipProvider>
           <Toaster />
+          <Navbar />
           <Router />
           <Footer />
           <CookieConsent />

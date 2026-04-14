@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import {
   Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
-  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle, X
+  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle, X,
+  Wallet, MessageSquare
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -163,6 +164,37 @@ export default function Admin() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
+
+  async function startConnectOnboarding(orgId: number) {
+    try {
+      const res = await fetch("/api/billing/connect-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orgId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      if (data.url) window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
+
+  async function sendNotification(orgId: number, type: "portrait" | "broadcast", message?: string) {
+    try {
+      const endpoint = type === "portrait" ? "/api/sms/notify-portrait" : "/api/sms/notify-community";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orgId, message: message || "Check out the new portraits in your community gallery!" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast({ title: "Notification sent!", description: `${data.sent || 0} messages sent.` });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
@@ -424,6 +456,12 @@ export default function Admin() {
                                 <CreditCard className="h-4 w-4 text-green-500" />
                               </Button>
                             )}
+                            <Button variant="ghost" size="icon" title={c.stripeConnectOnboardingComplete ? "Payouts Connected" : "Set Up Payouts"} onClick={() => startConnectOnboarding(c.id)} disabled={!!c.stripeConnectOnboardingComplete}>
+                              <Wallet className={`h-4 w-4 ${c.stripeConnectOnboardingComplete ? "text-green-500" : "text-amber-500"}`} />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Send Community Notification" onClick={() => sendNotification(c.id, "broadcast")}>
+                              <MessageSquare className="h-4 w-4 text-blue-500" />
+                            </Button>
                             <Button variant="ghost" size="icon" title="View Gallery" asChild>
                               <a href={`/${c.slug}`} target="_blank"><ExternalLink className="h-4 w-4" /></a>
                             </Button>
