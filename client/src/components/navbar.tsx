@@ -35,6 +35,9 @@ export function Navbar() {
               </Button>
             </>
           )}
+          <Link href="/get-started" className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1">
+            Get Started
+          </Link>
           {!isLoading && !isAuthenticated && (
             <Button size="sm" asChild>
               <Link href="/login">Log In</Link>

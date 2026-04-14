@@ -83,6 +83,20 @@ export function registerBillingRoutes(app: Express): void {
     }
   });
 
+  // Get all active plans (for wizard pricing display — accessible to any authenticated user)
+  app.get("/api/billing/plans", isAuthenticated, async (_req: any, res: Response) => {
+    try {
+      const plans = await storage.getAllSubscriptionPlans();
+      res.json(plans.filter((p: any) => p.isActive).map((p: any) => ({
+        id: p.id, name: p.name, description: p.description,
+        priceMonthlyCents: p.priceMonthlyCents, priceAnnualCents: p.priceAnnualCents,
+        sizeTier: p.sizeTier, maxHomes: p.maxHomes,
+      })));
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to fetch plans" });
+    }
+  });
+
   // Check Connect status
   app.get("/api/billing/connect-status/:orgId", isAuthenticated, async (req: any, res: Response) => {
     try {

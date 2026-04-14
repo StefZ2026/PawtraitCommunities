@@ -18,6 +18,7 @@ import Styles from "@/pages/styles";
 import OrderMerch from "@/pages/order-merch";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
+import GetStarted from "@/pages/get-started";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/join" component={JoinCommunity} />
       <Route path="/dashboard" component={ResidentDashboard} />
       <Route path="/admin" component={Admin} />
+      <Route path="/get-started" component={GetStarted} />
       <Route path="/styles" component={Styles} />
       <Route path="/order/:portraitId" component={OrderMerch} />
       <Route path="/privacy" component={Privacy} />

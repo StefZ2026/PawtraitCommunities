@@ -9,10 +9,12 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 export function registerCommunityRoutes(app: Express): void {
 
-  // Admin: Create community
+  // Admin: Create community (with engagement-based tier assignment)
   app.post("/api/admin/communities", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
-      const { name, slug, totalHomes, contactName, contactEmail, contactPhone, locationStreet, locationCity, locationState, locationZip } = req.body;
+      const { name, slug, totalHomes, contactName, contactEmail, contactPhone,
+        locationStreet, locationCity, locationState, locationZip,
+        engagementAnswers, selectedPlanId } = req.body;
       if (!name || !slug || !totalHomes) return res.status(400).json({ error: "Name, slug, and total homes are required" });
 
       const existing = await storage.getOrganizationBySlug(slug);
@@ -22,18 +24,79 @@ export function registerCommunityRoutes(app: Express): void {
       const year = new Date().getFullYear().toString().slice(-2);
       const communityCode = `${codePart}-${year}`;
 
+      // Determine plan: admin override > engagement-based > size-based
       const plans = await storage.getAllSubscriptionPlans();
-      const matchedPlan = plans.sort((a, b) => (a.maxHomes || 0) - (b.maxHomes || 0)).find(p => (p.maxHomes || 0) >= totalHomes);
+      let planId = selectedPlanId || null;
+      if (!planId) {
+        const engagement = engagementAnswers || {};
+        const yesCount = [engagement.hasLifestyleDirector, engagement.hasRegularEvents, engagement.hasNewsletterOrPortal].filter(Boolean).length;
+        if (yesCount >= 2) {
+          planId = plans.find((p: any) => p.sizeTier === "signature")?.id || null;
+        } else if (totalHomes <= 250) {
+          planId = plans.find((p: any) => p.sizeTier === "standard")?.id || null;
+        } else {
+          planId = plans.find((p: any) => p.sizeTier === "growth")?.id || null;
+        }
+      }
+      const selectedPlan = plans.find((p: any) => p.id === planId);
 
       const org = await storage.createOrganization({
         name, slug, communityCode, totalHomes, contactName: contactName || null, contactEmail: contactEmail || null,
         contactPhone: contactPhone || null, locationStreet: locationStreet || null, locationCity: locationCity || null,
-        locationState: locationState || null, locationZip: locationZip || null, planId: matchedPlan?.id || null,
+        locationState: locationState || null, locationZip: locationZip || null, planId,
         subscriptionStatus: "pending", speciesHandled: "both", onboardingCompleted: true, isActive: true,
       } as any);
 
-      res.status(201).json({ id: org.id, name: org.name, slug: org.slug, communityCode, totalHomes, planName: matchedPlan?.name || "No plan" });
+      res.status(201).json({
+        id: org.id, name: org.name, slug: org.slug, communityCode, totalHomes,
+        planId, planName: selectedPlan?.name || "No plan",
+        priceMonthlyCents: (selectedPlan as any)?.priceMonthlyCents || 0,
+        priceAnnualCents: selectedPlan?.priceAnnualCents || 0,
+      });
     } catch (error: any) { console.error("Error creating community:", error.message); res.status(500).json({ error: "Failed to create community" }); }
+  });
+
+  // Self-service: Register a community (any authenticated user)
+  app.post("/api/communities/register-community", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { name, slug, totalHomes, contactName, contactEmail, engagementAnswers } = req.body;
+      if (!name || !slug || !totalHomes || !contactName) return res.status(400).json({ error: "Name, slug, total homes, and contact name are required" });
+
+      const existing = await storage.getOrganizationBySlug(slug);
+      if (existing) return res.status(400).json({ error: "This community URL is already taken" });
+
+      const codePart = name.split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g, "").substring(0, 8);
+      const year = new Date().getFullYear().toString().slice(-2);
+      const communityCode = `${codePart}-${year}`;
+
+      // Engagement-based tier assignment
+      const plans = await storage.getAllSubscriptionPlans();
+      const engagement = engagementAnswers || {};
+      const yesCount = [engagement.hasLifestyleDirector, engagement.hasRegularEvents, engagement.hasNewsletterOrPortal].filter(Boolean).length;
+      let planId: number | null = null;
+      if (yesCount >= 2) {
+        planId = plans.find((p: any) => p.sizeTier === "signature")?.id || null;
+      } else if (totalHomes <= 250) {
+        planId = plans.find((p: any) => p.sizeTier === "standard")?.id || null;
+      } else {
+        planId = plans.find((p: any) => p.sizeTier === "growth")?.id || null;
+      }
+      const selectedPlan = plans.find((p: any) => p.id === planId);
+
+      const org = await storage.createOrganization({
+        name, slug, communityCode, totalHomes, contactName, contactEmail: contactEmail || null,
+        ownerId: userId, planId, subscriptionStatus: "pending",
+        speciesHandled: "both", onboardingCompleted: true, isActive: true,
+      } as any);
+
+      res.status(201).json({
+        id: org.id, name: org.name, slug: org.slug, communityCode, totalHomes,
+        planId, planName: selectedPlan?.name || "No plan",
+        priceMonthlyCents: (selectedPlan as any)?.priceMonthlyCents || 0,
+        priceAnnualCents: selectedPlan?.priceAnnualCents || 0,
+      });
+    } catch (error: any) { console.error("Error registering community:", error.message); res.status(500).json({ error: "Failed to register community" }); }
   });
 
   // Admin: Edit community

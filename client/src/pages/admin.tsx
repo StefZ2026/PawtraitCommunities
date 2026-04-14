@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { CreateCommunityWizard } from "@/components/create-community-wizard";
 import {
   Building2, Plus, Users, Dog, Cat, Image, CreditCard, Gift, Copy, ExternalLink,
-  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle, X,
+  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle,
   Wallet, MessageSquare
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,13 +33,7 @@ export default function Admin() {
   const queryClient = useQueryClient();
   const token = session?.access_token;
 
-  // Create form state
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [totalHomes, setTotalHomes] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
 
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -74,29 +69,6 @@ export default function Admin() {
     signature: communities.filter((c: any) => c.planName === "Signature").length,
   };
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/admin/communities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, slug: slug.toLowerCase().replace(/[^a-z0-9]/g, ""), totalHomes: parseInt(totalHomes), contactName: contactName || undefined, contactEmail: contactEmail || undefined }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
-      setShowCreateForm(false);
-      setName(""); setSlug(""); setTotalHomes(""); setContactName(""); setContactEmail("");
-      toast({ title: "Community created!", description: `Code: ${data.communityCode}` });
-    },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
-  function handleNameChange(value: string) {
-    setName(value);
-    setSlug(value.toLowerCase().replace(/[^a-z0-9]/g, ""));
-  }
 
   function openEdit(c: any) {
     setEditCommunity(c);
@@ -336,39 +308,13 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        {/* Create Form (inline, like Pros) */}
-        {showCreateForm && (
-          <Card className="mb-6 bg-background">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
-              <CardTitle className="text-base font-semibold">Add New Community</CardTitle>
-              <Button size="icon" variant="ghost" onClick={() => { setShowCreateForm(false); setName(""); setSlug(""); setTotalHomes(""); setContactName(""); setContactEmail(""); }}>
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-                <div className="md:col-span-2">
-                  <Label className="text-xs">Community Name</Label>
-                  <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Soleil at Lakewood Ranch" required />
-                </div>
-                <div>
-                  <Label className="text-xs">URL Slug</Label>
-                  <Input value={slug} onChange={(e) => setSlug(e.target.value)} required />
-                </div>
-                <div>
-                  <Label className="text-xs">Total Homes</Label>
-                  <Input type="number" value={totalHomes} onChange={(e) => setTotalHomes(e.target.value)} placeholder="e.g. 700" required min="1" />
-                </div>
-                <div>
-                  <Label className="text-xs">Contact Email</Label>
-                  <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optional" />
-                </div>
-                <div>
-                  <Button type="submit" className="w-full" disabled={createMutation.isPending}>{createMutation.isPending ? "Creating..." : "Create"}</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+        {/* Create Community Wizard */}
+        {showCreateForm && token && (
+          <CreateCommunityWizard
+            token={token}
+            onSuccess={() => { queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] }); setShowCreateForm(false); }}
+            onCancel={() => setShowCreateForm(false)}
+          />
         )}
 
         {/* Communities Table */}
