@@ -39,7 +39,7 @@ export default function Admin() {
       const res = await fetch("/api/admin/communities", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"), totalHomes: parseInt(totalHomes), contactName: contactName || undefined, contactEmail: contactEmail || undefined }),
+        body: JSON.stringify({ name, slug: slug.toLowerCase().replace(/[^a-z0-9]/g, ""), totalHomes: parseInt(totalHomes), contactName: contactName || undefined, contactEmail: contactEmail || undefined }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
       return res.json();
@@ -55,7 +55,7 @@ export default function Admin() {
 
   function handleNameChange(value: string) {
     setName(value);
-    setSlug(value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""));
+    setSlug(value.toLowerCase().replace(/[^a-z0-9]/g, ""));
   }
 
   if (!authLoading && (!isAuthenticated || !isAdmin)) { setLocation("/login"); return null; }
