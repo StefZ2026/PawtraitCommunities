@@ -3,6 +3,7 @@ import { pool } from "../db";
 import { storage } from "../storage";
 import { isAuthenticated } from "../auth";
 import { isAdmin } from "./helpers";
+import { uploadToStorage, isDataUri } from "../image-storage";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
@@ -148,9 +149,17 @@ export function registerCommunityRoutes(app: Express): void {
       const resResult = await pool.query("SELECT id, organization_id FROM residents WHERE supabase_auth_id = $1 AND is_active = true LIMIT 1", [req.user.claims.sub]);
       if (resResult.rows.length === 0) return res.status(404).json({ error: "Not registered" });
       const resident = resResult.rows[0];
-      const dog = await storage.createDog({ organizationId: resident.organization_id, residentId: resident.id, name, species: species || "dog", breed: breed || null, age: age || null, description: description || null, originalPhotoUrl: originalPhotoUrl || null } as any);
+
+      // Upload photo to Supabase Storage instead of storing base64 in DB
+      let photoUrl = originalPhotoUrl || null;
+      if (photoUrl && isDataUri(photoUrl)) {
+        const fname = `pet-${resident.id}-${Date.now()}.jpg`;
+        photoUrl = await uploadToStorage(photoUrl, "originals", fname);
+      }
+
+      const dog = await storage.createDog({ organizationId: resident.organization_id, residentId: resident.id, name, species: species || "dog", breed: breed || null, age: age || null, description: description || null, originalPhotoUrl: photoUrl } as any);
       res.status(201).json(dog);
-    } catch (error: any) { res.status(500).json({ error: "Failed" }); }
+    } catch (error: any) { console.error("Error adding pet:", error.message); res.status(500).json({ error: "Failed to add pet" }); }
   });
 
   // Gallery

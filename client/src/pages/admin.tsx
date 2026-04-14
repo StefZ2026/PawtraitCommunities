@@ -410,8 +410,18 @@ export default function Admin() {
                         <td className="py-4">
                           <div className="flex items-center gap-1">
                             {(c.subscriptionStatus === "pending" || !c.subscriptionStatus) && (
-                              <Button variant="ghost" size="icon" title="Start Free Trial" onClick={() => startFreeTrial(c.id)}>
-                                <Gift className="h-4 w-4 text-blue-500" />
+                              <>
+                                <Button variant="ghost" size="icon" title="Start Free Trial" onClick={() => startFreeTrial(c.id)}>
+                                  <Gift className="h-4 w-4 text-blue-500" />
+                                </Button>
+                                <Button variant="ghost" size="icon" title="Subscribe Monthly" onClick={() => startSubscription(c.id, "monthly")}>
+                                  <CreditCard className="h-4 w-4 text-green-500" />
+                                </Button>
+                              </>
+                            )}
+                            {c.subscriptionStatus === "trial" && (
+                              <Button variant="ghost" size="icon" title="Upgrade to Paid" onClick={() => startSubscription(c.id, "annual")}>
+                                <CreditCard className="h-4 w-4 text-green-500" />
                               </Button>
                             )}
                             <Button variant="ghost" size="icon" title="View Gallery" asChild>
