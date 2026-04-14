@@ -11,7 +11,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-1.5 font-serif font-bold text-xl text-primary">
-          <span className="flex items-center gap-0.5"><Dog className="h-5 w-5" /><Cat className="h-5 w-5" /></span>
+          <span className="flex items-center gap-0.5"><Dog className="h-5 w-5" /><Cat className="h-5 w-5" style={{ fill: "currentColor" }} /></span>
           Pawtrait Communities
         </Link>
         <nav className="flex items-center gap-2">
