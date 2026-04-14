@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import {
-  Heart, Sparkles, Dog, Cat, Camera, Users, Image,
+  Heart, Sparkles, Dog, Camera, Users, Image,
   ShoppingBag, Palette, ArrowRight, LayoutDashboard, LogOut
 } from "lucide-react";
+import { CatFilled } from "@/components/cat-filled";
 import { useAuth } from "@/hooks/use-auth";
 
 const STYLE_PREVIEWS = [
@@ -27,7 +28,7 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1.5 font-serif text-2xl font-bold text-primary">
-            <span className="flex items-center gap-0.5"><Dog className="h-6 w-6" /><Cat className="h-6 w-6" style={{ fill: "currentColor" }} /></span>
+            <span className="flex items-center gap-0.5"><Dog className="h-6 w-6" /><CatFilled className="h-6 w-6" /></span>
             Pawtrait Communities
           </Link>
           <nav className="flex items-center gap-2">
