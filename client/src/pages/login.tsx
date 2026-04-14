@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -29,8 +29,10 @@ export default function Login() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) setLocation("/dashboard");
-  }, [authLoading, isAuthenticated, setLocation]);
+    if (!authLoading && isAuthenticated) {
+      setLocation(isAdmin ? "/admin" : "/dashboard");
+    }
+  }, [authLoading, isAuthenticated, isAdmin, setLocation]);
 
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault();
@@ -55,7 +57,7 @@ export default function Login() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
       if (error) throw error;
-      setLocation("/dashboard");
+      // Redirect happens via useEffect after auth state updates
     } catch (error: any) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } finally {
@@ -81,7 +83,7 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithPassword({ email: signupEmail, password: signupPassword });
       if (error) throw error;
       toast({ title: "Welcome!", description: "Account created successfully." });
-      setLocation("/join");
+      // Redirect happens via useEffect after auth state updates
     } catch (error: any) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
     } finally {
