@@ -169,10 +169,11 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap justify-center gap-4">
             {[
-              { name: "Framed Prints", desc: "3 sizes, 3 frame colors" },
               { name: "Mugs", desc: "11oz & 15oz ceramic" },
               { name: "Tote Bags", desc: "Natural canvas" },
+              { name: "iPhone Cases", desc: "All models" },
               { name: "Greeting Cards", desc: "Holidays & occasions" },
+              { name: "Calendars", desc: "12-month custom" },
             ].map((item) => (
               <div key={item.name} className="flex items-center gap-3 bg-card border rounded-lg px-5 py-3">
                 <ShoppingBag className="h-5 w-5 text-primary shrink-0" />
