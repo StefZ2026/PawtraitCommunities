@@ -27,6 +27,30 @@ export function registerBillingRoutes(app: Express): void {
     }
   });
 
+  // Activate free trial (30 days)
+  app.post("/api/billing/free-trial", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      if (req.user.claims.email !== ADMIN_EMAIL) return res.status(403).json({ error: "Admin only" });
+      const { orgId } = req.body;
+      if (!orgId) return res.status(400).json({ error: "orgId required" });
+
+      const org = await storage.getOrganization(orgId);
+      if (!org) return res.status(404).json({ error: "Community not found" });
+      if (org.subscriptionStatus === "active") return res.status(400).json({ error: "Already has an active subscription" });
+      if (org.subscriptionStatus === "trial") return res.status(400).json({ error: "Already on a free trial" });
+
+      await pool.query(
+        "UPDATE organizations SET subscription_status = 'trial', subscription_start_date = NOW(), subscription_end_date = NOW() + INTERVAL '14 days' WHERE id = $1",
+        [orgId]
+      );
+      console.log(`[billing] Free trial activated for org ${orgId}`);
+      res.json({ success: true, status: "trial", expiresIn: "14 days" });
+    } catch (err: any) {
+      console.error("[billing] Free trial error:", err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Get subscription status for a community
   app.get("/api/billing/status/:orgId", isAuthenticated, async (req: any, res: Response) => {
     try {

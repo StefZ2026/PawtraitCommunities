@@ -7,9 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Users, Dog, Image } from "lucide-react";
+import { Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+
+function StatusBadge({ status }: { status: string }) {
+  const variant = status === "active" ? "default" : status === "trial" ? "outline" : "secondary";
+  const label = status === "trial" ? "Free Trial" : status || "pending";
+  const className = status === "active" ? "bg-green-600 hover:bg-green-700" : status === "trial" ? "border-blue-500 text-blue-600" : "";
+  return <Badge variant={variant} className={className}>{label}</Badge>;
+}
 
 export default function Admin() {
   const [, setLocation] = useLocation();
@@ -52,6 +59,42 @@ export default function Admin() {
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
+
+  async function startFreeTrial(orgId: number) {
+    try {
+      const res = await fetch("/api/billing/free-trial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orgId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast({ title: "Free trial activated!", description: "14-day free trial started." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
+
+  async function startSubscription(orgId: number) {
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orgId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
+
+  function copyCode(code: string) {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Copied!", description: `Community code ${code} copied to clipboard.` });
+  }
 
   function handleNameChange(value: string) {
     setName(value);
@@ -97,16 +140,46 @@ export default function Admin() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-serif font-bold text-lg">{c.name}</h3>
-                      <p className="text-sm text-muted-foreground">Code: <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{c.communityCode}</code></p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-muted-foreground">Code:</p>
+                        <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{c.communityCode}</code>
+                        <button onClick={() => copyCode(c.communityCode)} className="text-muted-foreground hover:text-foreground"><Copy className="h-3.5 w-3.5" /></button>
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">{c.totalHomes || "?"} homes &middot; /{c.slug}</p>
                     </div>
-                    <Badge variant={c.subscriptionStatus === "active" ? "default" : "secondary"}>{c.subscriptionStatus || "pending"}</Badge>
+                    <StatusBadge status={c.subscriptionStatus} />
                   </div>
                   <div className="flex gap-6 mt-4 text-sm">
                     <div className="flex items-center gap-1.5 text-muted-foreground"><Users className="h-4 w-4" />{c.residentCount} residents</div>
                     <div className="flex items-center gap-1.5 text-muted-foreground"><Dog className="h-4 w-4" />{c.dogCount} pets</div>
                     <div className="flex items-center gap-1.5 text-muted-foreground"><Image className="h-4 w-4" />{c.portraitCount} portraits</div>
                   </div>
+                  {(c.subscriptionStatus === "pending" || !c.subscriptionStatus) && (
+                    <div className="flex gap-3 mt-4 pt-4 border-t">
+                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => startFreeTrial(c.id)}>
+                        <Gift className="h-4 w-4" />Start 14-Day Free Trial
+                      </Button>
+                      <Button size="sm" className="gap-1.5" onClick={() => startSubscription(c.id)}>
+                        <CreditCard className="h-4 w-4" />Subscribe
+                      </Button>
+                    </div>
+                  )}
+                  {c.subscriptionStatus === "trial" && (
+                    <div className="flex gap-3 mt-4 pt-4 border-t">
+                      <p className="text-sm text-blue-600 flex-1">Free trial active — expires {c.subscriptionEndDate ? new Date(c.subscriptionEndDate).toLocaleDateString() : "in 14 days"}</p>
+                      <Button size="sm" className="gap-1.5" onClick={() => startSubscription(c.id)}>
+                        <CreditCard className="h-4 w-4" />Upgrade to Paid
+                      </Button>
+                    </div>
+                  )}
+                  {c.subscriptionStatus === "active" && (
+                    <div className="flex items-center gap-3 mt-4 pt-4 border-t">
+                      <p className="text-sm text-green-600 flex-1">Active subscription{c.subscriptionEndDate ? ` — renews ${new Date(c.subscriptionEndDate).toLocaleDateString()}` : ""}</p>
+                      <Button size="sm" variant="outline" className="gap-1.5" asChild>
+                        <a href={`/${c.slug}`} target="_blank"><ExternalLink className="h-4 w-4" />View Gallery</a>
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
