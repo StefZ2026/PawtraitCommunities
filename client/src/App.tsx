@@ -14,6 +14,7 @@ import ResidentDashboard from "@/pages/resident-dashboard";
 import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
 import Styles from "@/pages/styles";
+import OrderMerch from "@/pages/order-merch";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/:slug" component={Gallery} />
       <Route path="/admin" component={Admin} />
       <Route path="/styles" component={Styles} />
+      <Route path="/order/:portraitId" component={OrderMerch} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route component={NotFound} />

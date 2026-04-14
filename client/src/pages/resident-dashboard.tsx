@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog, Plus, Image, Heart, LogOut, Sparkles, Upload, Loader2 } from "lucide-react";
+import { Dog, Plus, Image, Heart, LogOut, Sparkles, Upload, Loader2, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { portraitStyles, stylePreviewImages, getStylesBySpecies } from "@/lib/portrait-styles";
@@ -206,9 +206,16 @@ export default function ResidentDashboard() {
                       <p className="text-white/70 text-sm">{pet.breed || pet.species}</p>
                       {pet.portrait.likeCount > 0 && <div className="flex items-center gap-1 mt-1"><Heart className="h-3 w-3 text-red-400 fill-red-400" /><span className="text-white/80 text-xs">{pet.portrait.likeCount}</span></div>}
                     </div>
-                    <Button size="sm" className="absolute top-2 right-2 gap-1" onClick={() => { setSelectedPet(pet); setGenerateOpen(true); }}>
-                      <Sparkles className="h-3 w-3" />New Style
-                    </Button>
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <Button size="sm" className="gap-1" onClick={() => { setSelectedPet(pet); setGenerateOpen(true); }}>
+                        <Sparkles className="h-3 w-3" />New Style
+                      </Button>
+                      <Button size="sm" variant="secondary" className="gap-1" asChild>
+                        <Link href={`/order/${pet.portrait.id}`}>
+                          <ShoppingBag className="h-3 w-3" />Order
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <CardContent className="pt-6">
