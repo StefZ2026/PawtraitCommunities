@@ -148,15 +148,15 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
         <div>
           <CardTitle className="text-base font-semibold">Add New Community</CardTitle>
           <div className="flex items-center gap-2 mt-2">
-            {[1, 2, 3, 4].map(s => (
+            {[1, 2, 3].map(s => (
               <div key={s} className={`flex items-center gap-1 ${s <= step ? "text-primary" : "text-muted-foreground"}`}>
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   s < step ? "bg-primary text-white" : s === step ? "bg-primary text-white" : "bg-muted"
                 }`}>{s < step ? <Check className="h-3.5 w-3.5" /> : s}</div>
                 <span className="text-xs hidden sm:inline">
-                  {s === 1 ? "Info" : s === 2 ? "Profile" : s === 3 ? "Plan" : "Activate"}
+                  {s === 1 ? "Info" : s === 2 ? "Profile" : "Your Plan"}
                 </span>
-                {s < 4 && <div className={`w-6 h-0.5 ${s < step ? "bg-primary" : "bg-muted"}`} />}
+                {s < 3 && <div className={`w-6 h-0.5 ${s < step ? "bg-primary" : "bg-muted"}`} />}
               </div>
             ))}
           </div>
@@ -238,80 +238,92 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
           </div>
         )}
 
-        {/* Step 3 — Plan Recommendation */}
+        {/* Step 3 — Your Plan + What You Get + Activation (combined) */}
         {step === 3 && selectedPlan && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Based on your community profile, here's your plan:</p>
+          <div className="space-y-5">
+            <div className="text-center">
+              <h3 className="font-serif font-bold text-xl">Your {selectedPlan.name} Plan</h3>
+              <p className="text-sm text-muted-foreground mt-1">Here's what {name} gets:</p>
+            </div>
 
-            <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-serif font-bold text-lg">{selectedPlan.name}</h3>
-                <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full">Your Plan</span>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">{selectedPlan.description}</p>
-              <div className="flex items-baseline gap-4">
+            {/* What's included — ordered least to most valuable */}
+            <div className="space-y-2">
+              {[
+                { title: "Easy Resident Onboarding", desc: "Share a code — residents join in minutes" },
+                { title: "Your Own Community Page", desc: `A dedicated gallery at pawtraitcommunities.com/${slug || "yourcommunity"}` },
+                { title: "SMS Notifications", desc: "Portrait alerts and community broadcasts keep residents connected" },
+                { title: "Unlimited AI Pet Portraits", desc: "50+ stunning styles residents can't stop sharing" },
+                { title: "Community Pet Gallery", desc: "Residents vote for their favorites, sparking friendly competition" },
+                { title: "Custom Pet Calendars", desc: "Personalized calendars featuring their pets in beautiful styles" },
+                { title: "Quarterly Pet Wall", desc: "The top 20 most loved pets, showcased for bragging rights" },
+                { title: "Keepsake Store", desc: "Framed prints, mugs, totes, phone cases, greeting cards — all featuring their pet's portrait" },
+                { title: "Give Back to Your Community", desc: "A portion of every purchase goes directly to support your community programs" },
+              ].map((feature, i) => (
+                <div key={i} className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                  <Check className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+                  <div><p className="font-medium text-sm">{feature.title}</p><p className="text-xs text-muted-foreground">{feature.desc}</p></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pricing */}
+            <div className="p-4 rounded-lg border-2 border-primary bg-primary/5 text-center">
+              <div className="flex items-baseline justify-center gap-4">
                 <div>
-                  <span className="text-2xl font-bold">${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}</span>
+                  <span className="text-3xl font-bold">${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
                 <div className="text-muted-foreground">or</div>
                 <div>
-                  <span className="text-2xl font-bold">${(selectedPlan.priceAnnualCents / 100).toFixed(0)}</span>
+                  <span className="text-3xl font-bold">${(selectedPlan.priceAnnualCents / 100).toFixed(0)}</span>
                   <span className="text-muted-foreground">/year</span>
-                  {annualSavings > 0 && <span className="text-green-600 text-sm ml-2">Save ${annualSavings.toFixed(0)}/yr</span>}
+                  {annualSavings > 0 && <span className="text-green-600 text-sm ml-2">Save ${annualSavings.toFixed(0)}</span>}
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(2)} className="gap-1"><ArrowLeft className="h-4 w-4" /> Back</Button>
-              <Button onClick={() => setStep(4)} className="gap-1">Next <ArrowRight className="h-4 w-4" /></Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4 — Activation */}
-        {step === 4 && selectedPlan && (
-          <div className="space-y-4">
-            <div className="text-center mb-2">
-              <h3 className="font-serif font-bold text-lg">Activate {name}</h3>
-              <p className="text-sm text-muted-foreground">{selectedPlan.name} plan &middot; {totalHomes} homes</p>
+            {/* Free trial callout */}
+            <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-center">
+              <p className="font-semibold text-blue-800">Try it free for 14 days — no credit card required</p>
+              <p className="text-xs text-blue-600 mt-1">Full access to everything. Cancel anytime.</p>
             </div>
 
+            {/* Activation buttons */}
             <div className="space-y-3">
               <Button
-                className="w-full gap-2 h-12"
-                variant="outline"
+                className="w-full gap-2 h-12 text-base"
                 disabled={loading}
                 onClick={() => createAndActivate("trial")}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
-                Start 14-Day Free Trial
+                Start Your Free 14-Day Trial
               </Button>
 
-              <Button
-                className="w-full gap-2 h-12"
-                variant="outline"
-                disabled={loading}
-                onClick={() => createAndActivate("monthly")}
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                Subscribe Monthly — ${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}/mo
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 gap-2 h-10"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={() => createAndActivate("monthly")}
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  Monthly — ${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}/mo
+                </Button>
 
-              <Button
-                className="w-full gap-2 h-12"
-                disabled={loading}
-                onClick={() => createAndActivate("annual")}
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                Subscribe Annual — ${(selectedPlan.priceAnnualCents / 100).toFixed(0)}/yr
-                {annualSavings > 0 && <span className="text-xs opacity-80">(Save ${annualSavings.toFixed(0)})</span>}
-              </Button>
+                <Button
+                  className="flex-1 gap-2 h-10"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={() => createAndActivate("annual")}
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  Annual — ${(selectedPlan.priceAnnualCents / 100).toFixed(0)}/yr
+                </Button>
+              </div>
             </div>
 
             <div className="flex justify-between items-center">
-              <Button variant="outline" onClick={() => setStep(3)} disabled={loading} className="gap-1"><ArrowLeft className="h-4 w-4" /> Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)} disabled={loading} className="gap-1"><ArrowLeft className="h-4 w-4" /> Back</Button>
               <Button variant="ghost" onClick={onCancel} disabled={loading} className="text-muted-foreground text-sm">
                 No thanks — maybe later
               </Button>
