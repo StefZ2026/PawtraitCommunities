@@ -76,12 +76,12 @@ export default function Admin() {
     }
   }
 
-  async function startSubscription(orgId: number) {
+  async function startSubscription(orgId: number, billing: "monthly" | "annual") {
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ orgId }),
+        body: JSON.stringify({ orgId, billing }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
@@ -154,22 +154,35 @@ export default function Admin() {
                     <div className="flex items-center gap-1.5 text-muted-foreground"><Dog className="h-4 w-4" />{c.dogCount} pets</div>
                     <div className="flex items-center gap-1.5 text-muted-foreground"><Image className="h-4 w-4" />{c.portraitCount} portraits</div>
                   </div>
+                  {c.planName && (
+                    <p className="text-sm text-muted-foreground mt-1">Plan: {c.planName}</p>
+                  )}
                   {(c.subscriptionStatus === "pending" || !c.subscriptionStatus) && (
-                    <div className="flex gap-3 mt-4 pt-4 border-t">
-                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => startFreeTrial(c.id)}>
+                    <div className="mt-4 pt-4 border-t space-y-3">
+                      <Button size="sm" variant="outline" className="gap-1.5 w-full" onClick={() => startFreeTrial(c.id)}>
                         <Gift className="h-4 w-4" />Start 14-Day Free Trial
                       </Button>
-                      <Button size="sm" className="gap-1.5" onClick={() => startSubscription(c.id)}>
-                        <CreditCard className="h-4 w-4" />Subscribe
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "monthly")}>
+                          <CreditCard className="h-4 w-4" />Monthly
+                        </Button>
+                        <Button size="sm" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "annual")}>
+                          <CreditCard className="h-4 w-4" />Annual (Save!)
+                        </Button>
+                      </div>
                     </div>
                   )}
                   {c.subscriptionStatus === "trial" && (
-                    <div className="flex gap-3 mt-4 pt-4 border-t">
-                      <p className="text-sm text-blue-600 flex-1">Free trial active — expires {c.subscriptionEndDate ? new Date(c.subscriptionEndDate).toLocaleDateString() : "in 14 days"}</p>
-                      <Button size="sm" className="gap-1.5" onClick={() => startSubscription(c.id)}>
-                        <CreditCard className="h-4 w-4" />Upgrade to Paid
-                      </Button>
+                    <div className="mt-4 pt-4 border-t space-y-3">
+                      <p className="text-sm text-blue-600">Free trial active — expires {c.subscriptionEndDate ? new Date(c.subscriptionEndDate).toLocaleDateString() : "in 14 days"}</p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "monthly")}>
+                          <CreditCard className="h-4 w-4" />Monthly
+                        </Button>
+                        <Button size="sm" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "annual")}>
+                          <CreditCard className="h-4 w-4" />Annual (Save!)
+                        </Button>
+                      </div>
                     </div>
                   )}
                   {c.subscriptionStatus === "active" && (

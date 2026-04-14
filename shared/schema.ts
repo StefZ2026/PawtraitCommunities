@@ -12,6 +12,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   name: text("name").notNull(),
   description: text("description"),
   priceAnnualCents: integer("price_annual_cents").notNull(),
+  priceMonthlyCents: integer("price_monthly_cents"),
   sizeTier: text("size_tier").notNull(),
   maxHomes: integer("max_homes").notNull(),
   stripeProductId: text("stripe_product_id"),

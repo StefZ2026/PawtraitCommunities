@@ -4,9 +4,9 @@ import { portraitStyles as styleOptions } from "../client/src/lib/portrait-style
 import { eq, notInArray } from "drizzle-orm";
 
 const planDefinitions = [
-  { id: 1, name: "Small Community", description: "For communities up to 100 homes. Unlimited portraits.", priceAnnualCents: 49900, sizeTier: "small", maxHomes: 100, isActive: true },
-  { id: 2, name: "Medium Community", description: "For communities of 101-300 homes. Unlimited portraits.", priceAnnualCents: 79900, sizeTier: "medium", maxHomes: 300, isActive: true },
-  { id: 3, name: "Large Community", description: "For communities of 301+ homes. Unlimited portraits.", priceAnnualCents: 119900, sizeTier: "large", maxHomes: 999999, isActive: true },
+  { id: 1, name: "Standard", description: "For communities up to 250 homes. Unlimited portraits.", priceAnnualCents: 39900, priceMonthlyCents: 3900, sizeTier: "standard", maxHomes: 250, isActive: true },
+  { id: 2, name: "Growth", description: "For communities of 250-800 homes. Unlimited portraits.", priceAnnualCents: 79900, priceMonthlyCents: 7900, sizeTier: "growth", maxHomes: 800, isActive: true },
+  { id: 3, name: "Signature", description: "For high-engagement and lifestyle communities. Unlimited portraits.", priceAnnualCents: 149900, priceMonthlyCents: 14900, sizeTier: "signature", maxHomes: 999999, isActive: true },
 ];
 
 export async function seedDatabase() {
@@ -178,6 +178,7 @@ export async function seedDatabase() {
         console.log("[migration] All tables ready");
 
         await pool.query("ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_annual_cents INTEGER");
+        await pool.query("ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_monthly_cents INTEGER");
         await pool.query("ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS size_tier TEXT");
         await pool.query("ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_homes INTEGER");
         console.log("[migration] Subscription plan tier columns ready");
@@ -260,9 +261,11 @@ export async function seedDatabase() {
     } else {
       const updates: Record<string, any> = {};
       if (existing.priceAnnualCents !== plan.priceAnnualCents) updates.priceAnnualCents = plan.priceAnnualCents;
+      if ((existing as any).priceMonthlyCents !== plan.priceMonthlyCents) updates.priceMonthlyCents = plan.priceMonthlyCents;
       if (existing.sizeTier !== plan.sizeTier) updates.sizeTier = plan.sizeTier;
       if (existing.maxHomes !== plan.maxHomes) updates.maxHomes = plan.maxHomes;
       if (existing.name !== plan.name) updates.name = plan.name;
+      if (existing.description !== plan.description) updates.description = plan.description;
       if (Object.keys(updates).length > 0) await db.update(subscriptionPlans).set(updates).where(eq(subscriptionPlans.id, plan.id));
     }
   }

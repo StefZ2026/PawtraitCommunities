@@ -46,7 +46,8 @@ export function registerCommunityRoutes(app: Express): void {
           pool.query("SELECT COUNT(*) as count FROM dogs WHERE organization_id = $1", [org.id]),
           pool.query("SELECT COUNT(*) as count FROM portraits p JOIN dogs d ON p.dog_id = d.id WHERE d.organization_id = $1", [org.id]),
         ]);
-        return { ...org, residentCount: Number(r.rows[0]?.count || 0), dogCount: Number(d.rows[0]?.count || 0), portraitCount: Number(p.rows[0]?.count || 0) };
+        const plan = org.planId ? await storage.getSubscriptionPlan(org.planId) : null;
+        return { ...org, planName: plan?.name || null, residentCount: Number(r.rows[0]?.count || 0), dogCount: Number(d.rows[0]?.count || 0), portraitCount: Number(p.rows[0]?.count || 0) };
       }));
       res.json(communities);
     } catch (error: any) { console.error("Error listing communities:", error.message); res.status(500).json({ error: "Failed" }); }

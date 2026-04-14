@@ -15,11 +15,11 @@ export function registerBillingRoutes(app: Express): void {
       if (req.user.claims.email !== ADMIN_EMAIL) return res.status(403).json({ error: "Admin only" });
       if (!isStripeConfigured()) return res.status(503).json({ error: "Stripe not configured" });
 
-      const { orgId } = req.body;
+      const { orgId, billing } = req.body;
       if (!orgId) return res.status(400).json({ error: "orgId required" });
 
       const returnUrl = `${process.env.APP_URL || "https://pawtrait-communities.onrender.com"}/admin`;
-      const checkoutUrl = await createSubscriptionCheckout(orgId, returnUrl);
+      const checkoutUrl = await createSubscriptionCheckout(orgId, returnUrl, billing === "monthly" ? "monthly" : "annual");
       res.json({ url: checkoutUrl });
     } catch (err: any) {
       console.error("[billing] Checkout error:", err.message);

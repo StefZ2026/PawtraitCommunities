@@ -38,8 +38,8 @@ export async function getOrCreateCustomer(orgId: number): Promise<string> {
   return customer.id;
 }
 
-// Create a checkout session for annual subscription
-export async function createSubscriptionCheckout(orgId: number, returnUrl: string): Promise<string> {
+// Create a checkout session for subscription (monthly or annual)
+export async function createSubscriptionCheckout(orgId: number, returnUrl: string, billing: "monthly" | "annual" = "annual"): Promise<string> {
   const org = await storage.getOrganization(orgId);
   if (!org) throw new Error("Organization not found");
   if (!org.planId) throw new Error("No plan selected");
@@ -47,19 +47,33 @@ export async function createSubscriptionCheckout(orgId: number, returnUrl: strin
   const plan = await storage.getSubscriptionPlan(org.planId);
   if (!plan) throw new Error("Plan not found");
 
-  const stripePriceId = plan.stripeLivePriceId || plan.stripePriceId;
-  if (!stripePriceId) throw new Error("Stripe price not configured for this plan");
-
   const customerId = await getOrCreateCustomer(orgId);
   const s = getStripe();
+
+  // Use pre-configured Stripe price if available, otherwise use inline pricing
+  const stripePriceId = plan.stripeLivePriceId || plan.stripePriceId;
+  const amountCents = billing === "monthly" ? ((plan as any).priceMonthlyCents || Math.ceil(plan.priceAnnualCents / 12)) : plan.priceAnnualCents;
+  const interval = billing === "monthly" ? "month" : "year";
+
+  const lineItem: any = stripePriceId && billing === "annual"
+    ? { price: stripePriceId, quantity: 1 }
+    : {
+        price_data: {
+          currency: "usd",
+          product_data: { name: `Pawtrait Communities — ${plan.name} (${billing})` },
+          unit_amount: amountCents,
+          recurring: { interval },
+        },
+        quantity: 1,
+      };
 
   const session = await s.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
-    line_items: [{ price: stripePriceId, quantity: 1 }],
+    line_items: [lineItem],
     success_url: `${returnUrl}?success=true`,
     cancel_url: `${returnUrl}?canceled=true`,
-    metadata: { orgId: String(orgId) },
+    metadata: { orgId: String(orgId), billing },
   });
 
   return session.url!;
