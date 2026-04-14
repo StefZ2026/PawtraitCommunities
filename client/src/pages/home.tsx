@@ -8,13 +8,13 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 
 const STYLE_PREVIEWS = [
-  { name: "Baroque Aristocrat", src: "/images/styles/baroque-aristocrat.jpg" },
+  { name: "Renaissance Noble", src: "/images/styles/renaissance-noble.jpg" },
   { name: "Beach Day", src: "/images/styles/beach-day.jpg" },
   { name: "Steampunk Explorer", src: "/images/styles/steampunk-explorer.jpg" },
   { name: "Sleepover Party", src: "/images/styles/sleepover-party.jpg" },
   { name: "Purrista Barista", src: "/images/styles/purrista-barista.jpg" },
   { name: "Cozy Cabin", src: "/images/styles/cozy-cabin.jpg" },
-  { name: "Space Explorer", src: "/images/styles/space-explorer.jpg" },
+  { name: "Garden Party", src: "/images/styles/garden-party.jpg" },
   { name: "Victorian Lady", src: "/images/styles/victorian-lady.jpg" },
 ];
 
@@ -122,6 +122,14 @@ export default function Home() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="text-center mt-8">
+            <Button variant="outline" size="lg" className="gap-2" asChild>
+              <Link href="/styles">
+                <Palette className="h-5 w-5" />
+                View All Styles
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
