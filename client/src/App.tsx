@@ -13,6 +13,7 @@ import JoinCommunity from "@/pages/join-community";
 import ResidentDashboard from "@/pages/resident-dashboard";
 import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
+import Styles from "@/pages/styles";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/dashboard" component={ResidentDashboard} />
       <Route path="/:slug" component={Gallery} />
       <Route path="/admin" component={Admin} />
+      <Route path="/styles" component={Styles} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route component={NotFound} />
