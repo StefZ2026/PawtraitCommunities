@@ -1,22 +1,27 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink, Home, LogOut, Pencil, Trash2 } from "lucide-react";
-import { Link } from "wouter";
+import {
+  Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
+  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle, X
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusBadge({ status }: { status: string }) {
-  const variant = status === "active" ? "default" : status === "trial" ? "outline" : "secondary";
-  const label = status === "trial" ? "Free Trial" : status || "pending";
-  const className = status === "active" ? "bg-green-600 hover:bg-green-700" : status === "trial" ? "border-blue-500 text-blue-600" : "";
-  return <Badge variant={variant} className={className}>{label}</Badge>;
+  switch (status) {
+    case "active": return <span className="text-green-600 font-medium">active</span>;
+    case "trial": return <span className="text-blue-600 font-medium">trial</span>;
+    case "canceled": return <span className="text-red-600 font-medium">canceled</span>;
+    case "past_due": return <span className="text-amber-600 font-medium">past due</span>;
+    default: return <span className="text-muted-foreground">pending</span>;
+  }
 }
 
 export default function Admin() {
@@ -24,15 +29,25 @@ export default function Admin() {
   const { isAdmin, isAuthenticated, isLoading: authLoading, session, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
+  const token = session?.access_token;
+
+  // Create form state
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [totalHomes, setTotalHomes] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const token = session?.access_token;
 
-  const { data: communities, isLoading } = useQuery({
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editCommunity, setEditCommunity] = useState<any>(null);
+  const [editName, setEditName] = useState("");
+  const [editTotalHomes, setEditTotalHomes] = useState("");
+  const [editContactName, setEditContactName] = useState("");
+  const [editContactEmail, setEditContactEmail] = useState("");
+
+  const { data: communities = [], isLoading } = useQuery({
     queryKey: ["/api/admin/communities"],
     queryFn: async () => {
       const res = await fetch("/api/admin/communities", { headers: { Authorization: `Bearer ${token}` } });
@@ -41,6 +56,22 @@ export default function Admin() {
     },
     enabled: !!token && isAdmin,
   });
+
+  // Stats derived from communities data
+  const totalCommunities = communities.length;
+  const activeSubs = communities.filter((c: any) => c.subscriptionStatus === "active").length;
+  const trialCount = communities.filter((c: any) => c.subscriptionStatus === "trial" || (!c.subscriptionStatus || c.subscriptionStatus === "pending")).length;
+  const pastDueCount = communities.filter((c: any) => c.subscriptionStatus === "past_due").length;
+  const totalResidents = communities.reduce((sum: number, c: any) => sum + (c.residentCount || 0), 0);
+  const totalPets = communities.reduce((sum: number, c: any) => sum + (c.dogCount || 0), 0);
+  const totalPortraits = communities.reduce((sum: number, c: any) => sum + (c.portraitCount || 0), 0);
+
+  const planDist = {
+    trial: communities.filter((c: any) => c.subscriptionStatus === "trial" || !c.subscriptionStatus || c.subscriptionStatus === "pending").length,
+    standard: communities.filter((c: any) => c.planName === "Standard").length,
+    growth: communities.filter((c: any) => c.planName === "Growth").length,
+    signature: communities.filter((c: any) => c.planName === "Signature").length,
+  };
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -54,12 +85,57 @@ export default function Admin() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
-      setCreateOpen(false);
+      setShowCreateForm(false);
       setName(""); setSlug(""); setTotalHomes(""); setContactName(""); setContactEmail("");
       toast({ title: "Community created!", description: `Code: ${data.communityCode}` });
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
+
+  function handleNameChange(value: string) {
+    setName(value);
+    setSlug(value.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  }
+
+  function openEdit(c: any) {
+    setEditCommunity(c);
+    setEditName(c.name);
+    setEditTotalHomes(String(c.totalHomes || ""));
+    setEditContactName(c.contactName || "");
+    setEditContactEmail(c.contactEmail || "");
+    setEditOpen(true);
+  }
+
+  async function saveEdit() {
+    if (!editCommunity) return;
+    try {
+      const res = await fetch(`/api/admin/communities/${editCommunity.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: editName, totalHomes: parseInt(editTotalHomes), contactName: editContactName || null, contactEmail: editContactEmail || null }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
+      toast({ title: "Updated!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
+      setEditOpen(false);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
+
+  async function deleteCommunity(id: number, communityName: string) {
+    try {
+      const res = await fetch(`/api/admin/communities/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
+      toast({ title: "Deleted", description: `${communityName} has been removed.` });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
 
   async function startFreeTrial(orgId: number) {
     try {
@@ -92,186 +168,292 @@ export default function Admin() {
     }
   }
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editCommunity, setEditCommunity] = useState<any>(null);
-  const [editName, setEditName] = useState("");
-  const [editTotalHomes, setEditTotalHomes] = useState("");
-  const [editContactName, setEditContactName] = useState("");
-  const [editContactEmail, setEditContactEmail] = useState("");
-
-  function openEdit(c: any) {
-    setEditCommunity(c);
-    setEditName(c.name);
-    setEditTotalHomes(String(c.totalHomes || ""));
-    setEditContactName(c.contactName || "");
-    setEditContactEmail(c.contactEmail || "");
-    setEditOpen(true);
-  }
-
-  async function saveEdit() {
-    if (!editCommunity) return;
-    try {
-      const res = await fetch(`/api/admin/communities/${editCommunity.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: editName, totalHomes: parseInt(editTotalHomes), contactName: editContactName || null, contactEmail: editContactEmail || null }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
-      toast({ title: "Updated!" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
-      setEditOpen(false);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-  }
-
-  async function deleteCommunity(id: number, name: string) {
-    try {
-      const res = await fetch(`/api/admin/communities/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
-      toast({ title: "Deleted", description: `${name} has been removed.` });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-  }
-
   function copyCode(code: string) {
     navigator.clipboard.writeText(code);
-    toast({ title: "Copied!", description: `Community code ${code} copied to clipboard.` });
-  }
-
-  function handleNameChange(value: string) {
-    setName(value);
-    setSlug(value.toLowerCase().replace(/[^a-z0-9]/g, ""));
+    toast({ title: "Copied!", description: `Code ${code} copied to clipboard.` });
   }
 
   if (!authLoading && (!isAuthenticated || !isAdmin)) { setLocation("/login"); return null; }
   if (authLoading || isLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-muted/30">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-1.5 font-serif font-bold text-xl text-primary">
+            <Building2 className="h-5 w-5" />Pawtrait Communities
+          </Link>
           <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary" />
-            <h1 className="font-serif font-bold text-lg">Pawtrait Communities Admin</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild><Link href="/"><Home className="h-4 w-4 mr-1" />Home</Link></Button>
-            <Button variant="outline" size="sm" asChild><Link href="/dashboard">Dashboard</Link></Button>
+            <Badge variant="secondary" className="gap-1">Admin</Badge>
             <Button variant="ghost" size="icon" onClick={() => logout()} disabled={isLoggingOut}><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
       </header>
+
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold">Communities</h2>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild><Button className="gap-1"><Plus className="h-4 w-4" />Add Community</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Create a Community</DialogTitle></DialogHeader>
-              <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
-                <div><Label>Community Name</Label><Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Soleil at Lakewood Ranch" required /></div>
-                <div><Label>URL Slug</Label><Input value={slug} onChange={(e) => setSlug(e.target.value)} required /><p className="text-xs text-muted-foreground mt-1">pawtraitcommunities.com/{slug || "..."}</p></div>
-                <div><Label>Total Homes</Label><Input type="number" value={totalHomes} onChange={(e) => setTotalHomes(e.target.value)} placeholder="e.g. 700" required min="1" /></div>
-                <div><Label>Community Contact Name</Label><Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Optional" /></div>
-                <div><Label>Community Contact Email</Label><Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optional" /></div>
-                <Button type="submit" className="w-full" disabled={createMutation.isPending}>{createMutation.isPending ? "Creating..." : "Create Community"}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+        {/* Stats Cards — Row 1 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-amber-100"><Building2 className="h-5 w-5 text-amber-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{totalCommunities}</p>
+                  <p className="text-sm text-muted-foreground">Communities</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-green-100"><TrendingUp className="h-5 w-5 text-green-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{activeSubs}</p>
+                  <p className="text-sm text-muted-foreground">Active Subs</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-blue-100"><Users className="h-5 w-5 text-blue-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{totalResidents}</p>
+                  <p className="text-sm text-muted-foreground">Residents</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-yellow-100"><AlertTriangle className="h-5 w-5 text-yellow-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{pastDueCount}</p>
+                  <p className="text-sm text-muted-foreground">Past Due</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        {!communities || communities.length === 0 ? (
-          <Card className="text-center"><CardContent className="pt-8 pb-6"><Building2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground" /><p className="text-muted-foreground">No communities yet. Create your first one!</p></CardContent></Card>
-        ) : (
-          <div className="grid gap-4">
-            {communities.map((c: any) => (
-              <Card key={c.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-serif font-bold text-lg">{c.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-muted-foreground">Code:</p>
-                        <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{c.communityCode}</code>
-                        <button onClick={() => copyCode(c.communityCode)} className="text-muted-foreground hover:text-foreground"><Copy className="h-3.5 w-3.5" /></button>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{c.totalHomes || "?"} homes &middot; /{c.slug}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(c)} className="text-muted-foreground hover:text-foreground"><Pencil className="h-4 w-4" /></button>
-                      <button onClick={() => { if (window.confirm(`Delete ${c.name}? This removes all residents, pets, and portraits. Cannot be undone.`)) deleteCommunity(c.id, c.name); }} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
-                      <StatusBadge status={c.subscriptionStatus} />
-                    </div>
-                  </div>
-                  <div className="flex gap-6 mt-4 text-sm">
-                    <div className="flex items-center gap-1.5 text-muted-foreground"><Users className="h-4 w-4" />{c.residentCount} residents</div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground"><Dog className="h-4 w-4" />{c.dogCount} pets</div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground"><Image className="h-4 w-4" />{c.portraitCount} portraits</div>
-                  </div>
-                  {c.planName && (
-                    <p className="text-sm text-muted-foreground mt-1">Plan: {c.planName}</p>
-                  )}
-                  {(c.subscriptionStatus === "pending" || !c.subscriptionStatus) && (
-                    <div className="mt-4 pt-4 border-t space-y-3">
-                      <Button size="sm" variant="outline" className="gap-1.5 w-full" onClick={() => startFreeTrial(c.id)}>
-                        <Gift className="h-4 w-4" />Start 14-Day Free Trial
-                      </Button>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "monthly")}>
-                          <CreditCard className="h-4 w-4" />Monthly
-                        </Button>
-                        <Button size="sm" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "annual")}>
-                          <CreditCard className="h-4 w-4" />Annual (Save!)
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  {c.subscriptionStatus === "trial" && (
-                    <div className="mt-4 pt-4 border-t space-y-3">
-                      <p className="text-sm text-blue-600">Free trial active — expires {c.subscriptionEndDate ? new Date(c.subscriptionEndDate).toLocaleDateString() : "in 14 days"}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "monthly")}>
-                          <CreditCard className="h-4 w-4" />Monthly
-                        </Button>
-                        <Button size="sm" className="gap-1.5 flex-1" onClick={() => startSubscription(c.id, "annual")}>
-                          <CreditCard className="h-4 w-4" />Annual (Save!)
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  {c.subscriptionStatus === "active" && (
-                    <div className="flex items-center gap-3 mt-4 pt-4 border-t">
-                      <p className="text-sm text-green-600 flex-1">Active subscription{c.subscriptionEndDate ? ` — renews ${new Date(c.subscriptionEndDate).toLocaleDateString()}` : ""}</p>
-                      <Button size="sm" variant="outline" className="gap-1.5" asChild>
-                        <a href={`/${c.slug}`} target="_blank"><ExternalLink className="h-4 w-4" />View Gallery</a>
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+
+        {/* Stats Cards — Row 2 */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-purple-100"><Dog className="h-5 w-5 text-purple-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{totalPets}</p>
+                  <p className="text-sm text-muted-foreground">Pets</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-pink-100"><Image className="h-5 w-5 text-pink-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{totalPortraits}</p>
+                  <p className="text-sm text-muted-foreground">Portraits</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-orange-100"><Home className="h-5 w-5 text-orange-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{communities.reduce((s: number, c: any) => s + (c.totalHomes || 0), 0).toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Total Homes</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Plan Distribution */}
+        <Card className="mb-6 bg-background">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Plan Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-0">trial/pending</Badge>
+                <span className="font-medium">{planDist.trial}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-green-100 text-green-700 border-0">standard</Badge>
+                <span className="font-medium">{planDist.standard}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-0">growth</Badge>
+                <span className="font-medium">{planDist.growth}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-0">signature</Badge>
+                <span className="font-medium">{planDist.signature}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Create Form (inline, like Pros) */}
+        {showCreateForm && (
+          <Card className="mb-6 bg-background">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+              <CardTitle className="text-base font-semibold">Add New Community</CardTitle>
+              <Button size="icon" variant="ghost" onClick={() => { setShowCreateForm(false); setName(""); setSlug(""); setTotalHomes(""); setContactName(""); setContactEmail(""); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Community Name</Label>
+                  <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Soleil at Lakewood Ranch" required />
+                </div>
+                <div>
+                  <Label className="text-xs">URL Slug</Label>
+                  <Input value={slug} onChange={(e) => setSlug(e.target.value)} required />
+                </div>
+                <div>
+                  <Label className="text-xs">Total Homes</Label>
+                  <Input type="number" value={totalHomes} onChange={(e) => setTotalHomes(e.target.value)} placeholder="e.g. 700" required min="1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Contact Email</Label>
+                  <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optional" />
+                </div>
+                <div>
+                  <Button type="submit" className="w-full" disabled={createMutation.isPending}>{createMutation.isPending ? "Creating..." : "Create"}</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Edit Community Dialog */}
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Edit {editCommunity?.name}</DialogTitle></DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); saveEdit(); }} className="space-y-4">
-              <div><Label>Community Name</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} required /></div>
-              <div><Label>Total Homes</Label><Input type="number" value={editTotalHomes} onChange={(e) => setEditTotalHomes(e.target.value)} required min="1" /></div>
-              <div><Label>Community Contact Name</Label><Input value={editContactName} onChange={(e) => setEditContactName(e.target.value)} placeholder="Optional" /></div>
-              <div><Label>Community Contact Email</Label><Input type="email" value={editContactEmail} onChange={(e) => setEditContactEmail(e.target.value)} placeholder="Optional" /></div>
-              <Button type="submit" className="w-full">Save Changes</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        {/* Communities Table */}
+        <Card className="bg-background">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+            <div>
+              <CardTitle className="text-base font-semibold">All Communities</CardTitle>
+              <p className="text-sm text-muted-foreground">{totalCommunities} registered communit{totalCommunities !== 1 ? "ies" : "y"}</p>
+            </div>
+            {!showCreateForm && (
+              <Button size="sm" className="gap-1" onClick={() => setShowCreateForm(true)}>
+                <Plus className="h-4 w-4" />Add Community
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {communities.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No communities yet</p>
+                <Button className="mt-4 gap-1" onClick={() => setShowCreateForm(true)}>
+                  <Plus className="h-4 w-4" />Add Your First Community
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b text-left text-sm text-muted-foreground">
+                      <th className="pb-3 font-medium">Community</th>
+                      <th className="pb-3 font-medium">Plan</th>
+                      <th className="pb-3 font-medium">Status</th>
+                      <th className="pb-3 font-medium text-center">Homes</th>
+                      <th className="pb-3 font-medium text-center"><Users className="h-4 w-4 inline-block" /></th>
+                      <th className="pb-3 font-medium text-center"><Dog className="h-4 w-4 inline-block" /></th>
+                      <th className="pb-3 font-medium text-center"><Image className="h-4 w-4 inline-block" /></th>
+                      <th className="pb-3 font-medium">Code</th>
+                      <th className="pb-3 font-medium">Joined</th>
+                      <th className="pb-3 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {communities.map((c: any) => (
+                      <tr key={c.id} className="border-b last:border-0">
+                        <td className="py-4">
+                          <a href={`/${c.slug}`} target="_blank" className="hover:underline">
+                            <p className="font-medium text-primary">{c.name}</p>
+                          </a>
+                          <p className="text-sm text-muted-foreground">{c.contactEmail || "—"}</p>
+                        </td>
+                        <td className="py-4">
+                          <span className={`text-sm ${
+                            c.planName === "Signature" ? "text-amber-600 font-medium" :
+                            c.planName === "Growth" ? "text-purple-600 font-medium" :
+                            c.planName === "Standard" ? "text-green-600 font-medium" :
+                            "text-muted-foreground"
+                          }`}>{c.planName || "—"}</span>
+                        </td>
+                        <td className="py-4"><StatusBadge status={c.subscriptionStatus || "pending"} /></td>
+                        <td className="py-4 text-center">{c.totalHomes || "—"}</td>
+                        <td className="py-4 text-center">{c.residentCount}</td>
+                        <td className="py-4 text-center">{c.dogCount}</td>
+                        <td className="py-4 text-center">{c.portraitCount}</td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-1">
+                            <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{c.communityCode}</code>
+                            <button onClick={() => copyCode(c.communityCode)} className="text-muted-foreground hover:text-foreground"><Copy className="h-3 w-3" /></button>
+                          </div>
+                        </td>
+                        <td className="py-4 text-muted-foreground text-sm">{new Date(c.createdAt).toLocaleDateString()}</td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-1">
+                            {(c.subscriptionStatus === "pending" || !c.subscriptionStatus) && (
+                              <Button variant="ghost" size="icon" title="Start Free Trial" onClick={() => startFreeTrial(c.id)}>
+                                <Gift className="h-4 w-4 text-blue-500" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" title="View Gallery" asChild>
+                              <a href={`/${c.slug}`} target="_blank"><ExternalLink className="h-4 w-4" /></a>
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Edit" onClick={() => openEdit(c)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              title="Delete"
+                              onClick={() => { if (window.confirm(`Delete "${c.name}"? This removes all residents, pets, and portraits. Cannot be undone.`)) deleteCommunity(c.id, c.name); }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Edit Community Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit {editCommunity?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); saveEdit(); }} className="space-y-4">
+            <div><Label>Community Name</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} required /></div>
+            <div><Label>Total Homes</Label><Input type="number" value={editTotalHomes} onChange={(e) => setEditTotalHomes(e.target.value)} required min="1" /></div>
+            <div><Label>Community Contact Name</Label><Input value={editContactName} onChange={(e) => setEditContactName(e.target.value)} placeholder="Optional" /></div>
+            <div><Label>Community Contact Email</Label><Input type="email" value={editContactEmail} onChange={(e) => setEditContactEmail(e.target.value)} placeholder="Optional" /></div>
+            <Button type="submit" className="w-full">Save Changes</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
