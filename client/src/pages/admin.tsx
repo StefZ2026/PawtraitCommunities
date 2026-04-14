@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink } from "lucide-react";
+import { Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink, Home, LogOut } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,7 +21,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function Admin() {
   const [, setLocation] = useLocation();
-  const { isAdmin, isAuthenticated, isLoading: authLoading, session } = useAuth();
+  const { isAdmin, isAuthenticated, isLoading: authLoading, session, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -107,9 +108,16 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center gap-2">
-          <Building2 className="h-6 w-6 text-primary" />
-          <h1 className="font-serif font-bold text-lg">Pawtrait Communities Admin</h1>
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-primary" />
+            <h1 className="font-serif font-bold text-lg">Pawtrait Communities Admin</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild><Link href="/"><Home className="h-4 w-4 mr-1" />Home</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href="/dashboard">Dashboard</Link></Button>
+            <Button variant="ghost" size="icon" onClick={() => logout()} disabled={isLoggingOut}><LogOut className="h-4 w-4" /></Button>
+          </div>
         </div>
       </header>
       <div className="container mx-auto px-4 py-8">
