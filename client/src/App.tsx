@@ -25,12 +25,12 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/join" component={JoinCommunity} />
       <Route path="/dashboard" component={ResidentDashboard} />
-      <Route path="/:slug" component={Gallery} />
       <Route path="/admin" component={Admin} />
       <Route path="/styles" component={Styles} />
       <Route path="/order/:portraitId" component={OrderMerch} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/:slug" component={Gallery} />
       <Route component={NotFound} />
     </Switch>
   );
