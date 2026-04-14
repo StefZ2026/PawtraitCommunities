@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink, Home, LogOut } from "lucide-react";
+import { Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink, Home, LogOut, Pencil, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -92,6 +92,53 @@ export default function Admin() {
     }
   }
 
+  const [editOpen, setEditOpen] = useState(false);
+  const [editCommunity, setEditCommunity] = useState<any>(null);
+  const [editName, setEditName] = useState("");
+  const [editTotalHomes, setEditTotalHomes] = useState("");
+  const [editContactName, setEditContactName] = useState("");
+  const [editContactEmail, setEditContactEmail] = useState("");
+
+  function openEdit(c: any) {
+    setEditCommunity(c);
+    setEditName(c.name);
+    setEditTotalHomes(String(c.totalHomes || ""));
+    setEditContactName(c.contactName || "");
+    setEditContactEmail(c.contactEmail || "");
+    setEditOpen(true);
+  }
+
+  async function saveEdit() {
+    if (!editCommunity) return;
+    try {
+      const res = await fetch(`/api/admin/communities/${editCommunity.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: editName, totalHomes: parseInt(editTotalHomes), contactName: editContactName || null, contactEmail: editContactEmail || null }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
+      toast({ title: "Updated!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
+      setEditOpen(false);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
+
+  async function deleteCommunity(id: number, name: string) {
+    try {
+      const res = await fetch(`/api/admin/communities/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
+      toast({ title: "Deleted", description: `${name} has been removed.` });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }
+
   function copyCode(code: string) {
     navigator.clipboard.writeText(code);
     toast({ title: "Copied!", description: `Community code ${code} copied to clipboard.` });
@@ -155,7 +202,11 @@ export default function Admin() {
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">{c.totalHomes || "?"} homes &middot; /{c.slug}</p>
                     </div>
-                    <StatusBadge status={c.subscriptionStatus} />
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => openEdit(c)} className="text-muted-foreground hover:text-foreground"><Pencil className="h-4 w-4" /></button>
+                      <button onClick={() => { if (window.confirm(`Delete ${c.name}? This removes all residents, pets, and portraits. Cannot be undone.`)) deleteCommunity(c.id, c.name); }} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                      <StatusBadge status={c.subscriptionStatus} />
+                    </div>
                   </div>
                   <div className="flex gap-6 mt-4 text-sm">
                     <div className="flex items-center gap-1.5 text-muted-foreground"><Users className="h-4 w-4" />{c.residentCount} residents</div>
@@ -206,6 +257,20 @@ export default function Admin() {
             ))}
           </div>
         )}
+
+        {/* Edit Community Dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit {editCommunity?.name}</DialogTitle></DialogHeader>
+            <form onSubmit={(e) => { e.preventDefault(); saveEdit(); }} className="space-y-4">
+              <div><Label>Community Name</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} required /></div>
+              <div><Label>Total Homes</Label><Input type="number" value={editTotalHomes} onChange={(e) => setEditTotalHomes(e.target.value)} required min="1" /></div>
+              <div><Label>Community Contact Name</Label><Input value={editContactName} onChange={(e) => setEditContactName(e.target.value)} placeholder="Optional" /></div>
+              <div><Label>Community Contact Email</Label><Input type="email" value={editContactEmail} onChange={(e) => setEditContactEmail(e.target.value)} placeholder="Optional" /></div>
+              <Button type="submit" className="w-full">Save Changes</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
