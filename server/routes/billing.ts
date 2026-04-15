@@ -21,7 +21,7 @@ export function registerBillingRoutes(app: Express): void {
       res.json({ url: checkoutUrl });
     } catch (err: any) {
       console.error("[billing] Checkout error:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: "Failed to create checkout" });
     }
   });
 
@@ -44,7 +44,7 @@ export function registerBillingRoutes(app: Express): void {
       res.json({ success: true, status: "trial", expiresIn: "14 days" });
     } catch (err: any) {
       console.error("[billing] Free trial error:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: "Failed to start trial" });
     }
   });
 
@@ -79,7 +79,8 @@ export function registerBillingRoutes(app: Express): void {
       const url = await createConnectOnboarding(orgId, returnUrl);
       res.json({ url });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[billing] Connect onboarding error:", err.message);
+      res.status(500).json({ error: "Failed to start Connect onboarding" });
     }
   });
 
@@ -104,7 +105,8 @@ export function registerBillingRoutes(app: Express): void {
       const status = await checkConnectStatus(orgId);
       res.json(status);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[billing] Connect status error:", err.message);
+      res.status(500).json({ error: "Failed to check Connect status" });
     }
   });
 }

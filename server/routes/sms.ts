@@ -38,7 +38,7 @@ export function registerSmsRoutes(app: Express): void {
       res.json({ success: true });
     } catch (err: any) {
       console.error("[sms] Error:", err.message);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: "Failed to send notification" });
     }
   });
 
@@ -64,7 +64,8 @@ export function registerSmsRoutes(app: Express): void {
 
       res.json({ sent, failed, total: residents.rows.length });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error("[sms] Broadcast error:", err.message);
+      res.status(500).json({ error: "Failed to send broadcast" });
     }
   });
 }
