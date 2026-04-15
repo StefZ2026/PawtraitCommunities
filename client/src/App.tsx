@@ -20,6 +20,7 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import GetStarted from "@/pages/get-started";
 import PlanPage from "@/pages/plan-page";
+import CommunityDashboard from "@/pages/community-dashboard";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/join" component={JoinCommunity} />
+      <Route path="/community" component={CommunityDashboard} />
       <Route path="/dashboard" component={ResidentDashboard} />
       <Route path="/admin" component={Admin} />
       <Route path="/get-started/plan" component={PlanPage} />

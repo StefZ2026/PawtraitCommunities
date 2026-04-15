@@ -77,6 +77,15 @@ export function registerCommunityRoutes(app: Express): void {
         speciesHandled: "both", onboardingCompleted: true, isActive: true,
       } as any);
 
+      // Auto-register owner as community admin resident
+      const userEmail = req.user.claims.email || "";
+      await storage.createResident({
+        supabaseAuthId: userId, organizationId: org.id,
+        homeNumber: "MGR", displayName: contactName || "Community Manager",
+        email: userEmail, phone: null, role: "admin",
+        notificationPreference: "email",
+      } as any);
+
       res.status(201).json({
         id: org.id, name: org.name, slug: org.slug, communityCode, totalHomes,
         planId, planName: selectedPlan?.name || "No plan",
@@ -84,6 +93,37 @@ export function registerCommunityRoutes(app: Express): void {
         priceAnnualCents: selectedPlan?.priceAnnualCents || 0,
       });
     } catch (error: any) { console.error("Error registering community:", error.message); res.status(500).json({ error: "Failed to register community" }); }
+  });
+
+  // Community owner dashboard — get the community I own
+  app.get("/api/my-community-admin", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      // Check if user owns a community
+      const orgResult = await pool.query("SELECT * FROM organizations WHERE owner_id = $1 AND is_active = true LIMIT 1", [userId]);
+      if (orgResult.rows.length === 0) return res.status(404).json({ error: "No community found" });
+      const org = orgResult.rows[0];
+
+      // Get counts
+      const [r, d, p] = await Promise.all([
+        pool.query("SELECT COUNT(*) as count FROM residents WHERE organization_id = $1 AND is_active = true", [org.id]),
+        pool.query("SELECT COUNT(*) as count FROM dogs WHERE organization_id = $1", [org.id]),
+        pool.query("SELECT COUNT(*) as count FROM portraits p JOIN dogs d ON p.dog_id = d.id WHERE d.organization_id = $1", [org.id]),
+      ]);
+
+      const plan = org.plan_id ? await storage.getSubscriptionPlan(org.plan_id) : null;
+
+      res.json({
+        id: org.id, name: org.name, slug: org.slug,
+        communityCode: org.community_code, totalHomes: org.total_homes,
+        contactName: org.contact_name, contactEmail: org.contact_email,
+        subscriptionStatus: org.subscription_status, subscriptionEndDate: org.subscription_end_date,
+        planName: plan?.name || null,
+        residentCount: Number(r.rows[0]?.count || 0),
+        dogCount: Number(d.rows[0]?.count || 0),
+        portraitCount: Number(p.rows[0]?.count || 0),
+      });
+    } catch (error: any) { res.status(500).json({ error: "Failed" }); }
   });
 
   // Admin: Edit community

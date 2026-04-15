@@ -73,7 +73,7 @@ export default function PlanPage() {
         if (!trialRes.ok) throw new Error(trialData.error || "Failed to start trial");
         sessionStorage.removeItem("communityWizardState");
         toast({ title: "Community created!", description: `${createData.name} is live with a 14-day free trial. Code: ${createData.communityCode}` });
-        setLocation("/admin");
+        setLocation(state.selfService ? "/community" : "/admin");
       } else {
         const checkoutRes = await fetch("/api/billing/checkout", {
           method: "POST",

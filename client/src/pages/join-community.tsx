@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -25,6 +25,15 @@ export default function JoinCommunity() {
   const [communitySlug, setCommunitySlug] = useState("");
 
   const token = session?.access_token;
+
+  // Pre-fill code from URL param (e.g., /join?code=SOLEIL-26)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (code) {
+      setCommunityCode(code.toUpperCase());
+    }
+  }, []);
 
   if (!authLoading && !isAuthenticated) {
     setLocation("/login");

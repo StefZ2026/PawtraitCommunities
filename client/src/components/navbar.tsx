@@ -24,6 +24,9 @@ export function Navbar() {
               <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1">
                 Dashboard
               </Link>
+              <Link href="/community" className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1">
+                My Community
+              </Link>
               {isAdmin && (
                 <Link href="/admin">
                   <Badge variant="secondary" className="gap-1 cursor-pointer">
