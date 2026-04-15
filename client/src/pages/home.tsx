@@ -8,7 +8,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 
 const STYLE_PREVIEWS = [
-  { name: "Renaissance Noble", src: "/images/styles/renaissance-noble.jpg" },
+  { name: "Royal Monarch", src: "/images/styles/renaissance-noble.jpg" },
   { name: "Beach Day", src: "/images/styles/beach-day.jpg" },
   { name: "Steampunk Explorer", src: "/images/styles/steampunk-explorer.jpg" },
   { name: "Sleepover Party", src: "/images/styles/sleepover-party.jpg" },

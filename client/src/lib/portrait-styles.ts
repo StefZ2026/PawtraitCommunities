@@ -10,11 +10,11 @@ export interface StyleOption {
 export const portraitStyles: StyleOption[] = [
   {
     id: 1,
-    name: "Renaissance Noble",
+    name: "Royal Monarch",
     description: "A dignified portrait in the style of Italian Renaissance masters",
     category: "Classical",
     species: "dog",
-    promptTemplate: "A majestic Renaissance oil painting portrait of a white fluffy {breed} dog wearing ornate noble attire with a velvet collar and golden medallion, dramatic chiaroscuro lighting, rich earth tones, in the style of Leonardo da Vinci and Raphael, museum quality, highly detailed white fur texture"
+    promptTemplate: "A majestic Renaissance oil painting portrait of a white fluffy {breed} dog wearing ornate royal attire with a velvet collar, golden crown, and jeweled medallion, dramatic chiaroscuro lighting, rich earth tones, in the style of Leonardo da Vinci and Raphael, museum quality, highly detailed white fur texture"
   },
   {
     id: 25,
@@ -146,11 +146,11 @@ export const portraitStyles: StyleOption[] = [
   },
   {
     id: 4,
-    name: "Bandana Portrait",
-    description: "Charming portrait with a colorful bandana",
+    name: "Pawsitively Spoiled",
+    description: "Charming portrait with a fun bandana message",
     category: "Showcase",
     species: "dog",
-    promptTemplate: "A charming portrait of a {breed} dog wearing a bright colorful bandana, sitting attentively with happy eyes, soft studio lighting, clean simple background, friendly and approachable expression, professional pet photo style, captures the dog's sweet personality"
+    promptTemplate: "A charming portrait of a {breed} dog wearing a cute bandana that says 'Pawsitively Spoiled' in playful lettering, sitting proudly with happy eyes, soft studio lighting, clean simple background, pampered and loved expression, professional pet photo style, captures the dog's sweet spoiled personality"
   },
   {
     id: 7,
@@ -424,11 +424,11 @@ export function getStyleCategoriesBySpecies(species: "dog" | "cat"): string[] {
 }
 
 export const stylePreviewImages: Record<string, string> = {
-  "Renaissance Noble": "/images/styles/renaissance-noble.jpg",
+  "Royal Monarch": "/images/styles/renaissance-noble.jpg",
   "Baroque Aristocrat": "/images/styles/baroque-aristocrat.jpg",
   "Victorian Gentleman": "/images/styles/victorian-gentleman.jpg",
   "Royal Monarch": "/images/styles/royal-monarch.jpg",
-  "Bandana Portrait": "/images/styles/bandana-portrait.jpg",
+  "Pawsitively Spoiled": "/images/styles/bandana-portrait.jpg",
   "Art Nouveau Beauty": "/images/styles/art-nouveau.jpg",
   "Impressionist Garden": "/images/styles/impressionist-garden.jpg",
   "Steampunk Explorer": "/images/styles/steampunk-explorer.jpg",
