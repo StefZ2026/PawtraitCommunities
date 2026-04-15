@@ -1,131 +1,390 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dog, CheckCircle } from "lucide-react";
+import { Dog, Cat, CheckCircle, Camera, Upload, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
-type Step = "code" | "details" | "done";
+type WizardStep = "code" | "name" | "home" | "contact" | "petCount" | "petDetail" | "household" | "done";
 
 export default function JoinCommunity() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading, session } = useAuth();
   const { toast } = useToast();
-  const [step, setStep] = useState<Step>("code");
+  const token = session?.access_token;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [step, setStep] = useState<WizardStep>("code");
   const [loading, setLoading] = useState(false);
+
+  // Code step
   const [communityCode, setCommunityCode] = useState("");
   const [communityName, setCommunityName] = useState("");
   const [communityId, setCommunityId] = useState<number | null>(null);
-  const [homeNumber, setHomeNumber] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
   const [communitySlug, setCommunitySlug] = useState("");
 
-  const token = session?.access_token;
+  // Name step
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
-  // Pre-fill code from URL param (e.g., /join?code=SOLEIL-26)
+  // Home step
+  const [homeNumber, setHomeNumber] = useState("");
+
+  // Contact step
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Pet count step
+  const [petCount, setPetCount] = useState(1);
+
+  // Pet details (array for multiple pets)
+  const [pets, setPets] = useState<Array<{ name: string; species: string; breed: string; photo: string | null }>>([]);
+  const [currentPetIndex, setCurrentPetIndex] = useState(0);
+
+  // Household name
+  const [householdName, setHouseholdName] = useState("");
+
+  // Pre-fill code from URL param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    if (code) {
-      setCommunityCode(code.toUpperCase());
-    }
+    if (code) setCommunityCode(code.toUpperCase());
   }, []);
 
-  if (!authLoading && !isAuthenticated) {
-    setLocation("/login");
-    return null;
-  }
+  if (!authLoading && !isAuthenticated) { setLocation("/login"); return null; }
 
-  async function validateCode(e: React.FormEvent) {
-    e.preventDefault();
+  async function validateCode() {
     setLoading(true);
     try {
       const res = await fetch("/api/communities/validate-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: communityCode.trim() }),
       });
       const data = await res.json();
       if (!data.valid) {
-        toast({ title: "Invalid code", description: data.error || "Please check your community code.", variant: "destructive" });
+        toast({ title: "Hmm, that code doesn't look right", description: "Check with your community manager for the correct code.", variant: "destructive" });
         return;
       }
       setCommunityName(data.communityName);
       setCommunityId(data.communityId);
-      setStep("details");
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+      setStep("name");
+    } catch { toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" }); }
+    finally { setLoading(false); }
+  }
+
+  function initPets() {
+    const arr = [];
+    for (let i = 0; i < petCount; i++) {
+      arr.push({ name: "", species: "dog", breed: "", photo: null });
+    }
+    setPets(arr);
+    setCurrentPetIndex(0);
+    setStep("petDetail");
+  }
+
+  function updateCurrentPet(field: string, value: string | null) {
+    const updated = [...pets];
+    (updated[currentPetIndex] as any)[field] = value;
+    setPets(updated);
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => updateCurrentPet("photo", reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function nextPetOrHousehold() {
+    if (currentPetIndex < pets.length - 1) {
+      setCurrentPetIndex(currentPetIndex + 1);
+    } else {
+      // Generate default household name
+      setHouseholdName(`The ${lastName} Family Pets`);
+      setStep("household");
     }
   }
 
-  async function register(e: React.FormEvent) {
-    e.preventDefault();
+  async function finishSetup() {
     setLoading(true);
     try {
-      const res = await fetch("/api/communities/register", {
+      // Register as resident
+      const regRes = await fetch("/api/communities/register", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ communityCode: communityCode.trim(), homeNumber: homeNumber.trim(), displayName: displayName.trim() || null, phone: phone.trim() || null }),
+        body: JSON.stringify({
+          communityCode: communityCode.trim(),
+          homeNumber: homeNumber.trim(),
+          displayName: householdName || `${firstName} ${lastName}`,
+          phone: phone.trim() || null,
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Registration failed");
-      setCommunitySlug(data.communitySlug);
+      const regData = await regRes.json();
+      if (!regRes.ok) throw new Error(regData.error || "Registration failed");
+      setCommunitySlug(regData.communitySlug);
+
+      // Add each pet
+      for (const pet of pets) {
+        if (!pet.name) continue;
+        await fetch("/api/my-pets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            name: pet.name,
+            species: pet.species,
+            breed: pet.breed || null,
+            originalPhotoUrl: pet.photo,
+          }),
+        });
+      }
+
       setStep("done");
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) {
+      toast({ title: "Something went wrong", description: err.message, variant: "destructive" });
+    } finally { setLoading(false); }
   }
+
+  const currentPet = pets[currentPetIndex];
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-muted/30">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <Dog className="h-10 w-10 mx-auto mb-2 text-primary" />
-          <h1 className="text-2xl font-serif font-bold">Join Your Community</h1>
-          {step === "code" && <p className="text-sm text-muted-foreground">Enter the code your community provided</p>}
-          {step === "details" && <p className="text-sm text-muted-foreground">Welcome to {communityName}!</p>}
-        </CardHeader>
-        <CardContent>
           {step === "code" && (
-            <form onSubmit={validateCode} className="space-y-4">
-              <div>
-                <Label htmlFor="community-code">Community Code</Label>
-                <Input id="community-code" value={communityCode} onChange={(e) => setCommunityCode(e.target.value.toUpperCase())} placeholder="e.g. SOLEIL-26" required className="text-center text-lg tracking-wider" />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Validating..." : "Continue"}</Button>
-            </form>
+            <>
+              <h1 className="text-2xl font-serif font-bold">Join Your Community</h1>
+              <p className="text-sm text-muted-foreground">Enter the code your community provided</p>
+            </>
           )}
-          {step === "details" && (
-            <form onSubmit={register} className="space-y-4">
-              <div>
-                <Label htmlFor="home-number">Home / Unit Number</Label>
-                <Input id="home-number" value={homeNumber} onChange={(e) => setHomeNumber(e.target.value)} placeholder="e.g. 147" required />
-              </div>
-              <div>
-                <Label htmlFor="display-name">Display Name (optional)</Label>
-                <Input id="display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder='e.g. "The Hendersons"' />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone (optional)</Label>
-                <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="For notifications" />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Joining..." : "Join Community"}</Button>
-            </form>
+          {step === "name" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Welcome to {communityName}!</h1>
+              <p className="text-sm text-muted-foreground">Let's get you set up. First, what's your name?</p>
+            </>
+          )}
+          {step === "home" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Hi, {firstName}!</h1>
+              <p className="text-sm text-muted-foreground">What's your home or unit number?</p>
+            </>
+          )}
+          {step === "contact" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">How can we reach you?</h1>
+              <p className="text-sm text-muted-foreground">We'll only use this for portrait notifications</p>
+            </>
+          )}
+          {step === "petCount" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Now the fun part!</h1>
+              <p className="text-sm text-muted-foreground">How many pets do you have?</p>
+            </>
+          )}
+          {step === "petDetail" && currentPet && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">
+                Tell us about {currentPetIndex === 0 ? "your pet" : `pet #${currentPetIndex + 1}`}
+                {pets.length > 1 && <span className="text-sm font-normal text-muted-foreground ml-2">({currentPetIndex + 1} of {pets.length})</span>}
+              </h1>
+              <p className="text-sm text-muted-foreground">We'll use this info to create their portrait</p>
+            </>
+          )}
+          {step === "household" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Almost done!</h1>
+              <p className="text-sm text-muted-foreground">What should we call your household?</p>
+            </>
           )}
           {step === "done" && (
+            <>
+              <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
+              <h1 className="text-2xl font-serif font-bold">You're all set!</h1>
+            </>
+          )}
+        </CardHeader>
+        <CardContent>
+
+          {/* Code Step */}
+          {step === "code" && (
+            <form onSubmit={(e) => { e.preventDefault(); validateCode(); }} className="space-y-4">
+              <Input
+                value={communityCode}
+                onChange={(e) => setCommunityCode(e.target.value.toUpperCase())}
+                placeholder="e.g. SOLEIL-26"
+                className="text-center text-lg tracking-wider"
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Checking..." : "Continue"}
+              </Button>
+            </form>
+          )}
+
+          {/* Name Step */}
+          {step === "name" && (
+            <div className="space-y-4">
+              <div>
+                <Label>First Name</Label>
+                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="e.g. Barbara" autoFocus />
+              </div>
+              <div>
+                <Label>Last Name</Label>
+                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="e.g. Schnee" />
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep("code")} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
+                <Button onClick={() => setStep("home")} disabled={!firstName.trim() || !lastName.trim()} className="gap-1">Next<ArrowRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          )}
+
+          {/* Home Step */}
+          {step === "home" && (
+            <div className="space-y-4">
+              <div>
+                <Label>Home / Unit Number</Label>
+                <Input value={homeNumber} onChange={(e) => setHomeNumber(e.target.value)} placeholder="e.g. 147 or Unit B" autoFocus />
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep("name")} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
+                <Button onClick={() => setStep("contact")} disabled={!homeNumber.trim()} className="gap-1">Next<ArrowRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          )}
+
+          {/* Contact Step */}
+          {step === "contact" && (
+            <div className="space-y-4">
+              <div>
+                <Label>Cell Phone</Label>
+                <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567 or any format" />
+                <p className="text-xs text-muted-foreground mt-1">We'll text you when your portrait is ready</p>
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="barbara@email.com" />
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep("home")} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
+                <Button onClick={() => setStep("petCount")} className="gap-1">Next<ArrowRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          )}
+
+          {/* Pet Count Step */}
+          {step === "petCount" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center gap-4">
+                <Button variant="outline" size="icon" onClick={() => setPetCount(Math.max(1, petCount - 1))} disabled={petCount <= 1}>-</Button>
+                <span className="text-4xl font-bold text-primary w-16 text-center">{petCount}</span>
+                <Button variant="outline" size="icon" onClick={() => setPetCount(Math.min(10, petCount + 1))}>+</Button>
+              </div>
+              <p className="text-center text-sm text-muted-foreground">
+                {petCount === 1 ? "1 pet" : `${petCount} pets`} — we'll ask about each one
+              </p>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep("contact")} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
+                <Button onClick={initPets} className="gap-1">Next<ArrowRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          )}
+
+          {/* Pet Detail Step (repeats for each pet) */}
+          {step === "petDetail" && currentPet && (
+            <div className="space-y-4">
+              <div>
+                <Label>What's their name?</Label>
+                <Input value={currentPet.name} onChange={(e) => updateCurrentPet("name", e.target.value)} placeholder="e.g. Buddy" autoFocus />
+              </div>
+              <div>
+                <Label>Dog or cat?</Label>
+                <div className="flex gap-2 mt-1">
+                  <Button type="button" variant={currentPet.species === "dog" ? "default" : "outline"} className="flex-1 gap-2" onClick={() => updateCurrentPet("species", "dog")}>
+                    <Dog className="h-4 w-4" />Dog
+                  </Button>
+                  <Button type="button" variant={currentPet.species === "cat" ? "default" : "outline"} className="flex-1 gap-2" onClick={() => updateCurrentPet("species", "cat")}>
+                    <Cat className="h-4 w-4" />Cat
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label>Breed (optional)</Label>
+                <Input value={currentPet.breed} onChange={(e) => updateCurrentPet("breed", e.target.value)} placeholder="e.g. Golden Retriever" />
+              </div>
+              <div>
+                <Label>Photo</Label>
+                <input type="file" ref={fileInputRef} accept="image/*" onChange={handlePhotoSelect} className="hidden" />
+                {currentPet.photo ? (
+                  <div className="relative">
+                    <img src={currentPet.photo} alt="Pet" className="w-full h-48 object-cover rounded-lg" />
+                    <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => { updateCurrentPet("photo", null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>Change</Button>
+                  </div>
+                ) : (
+                  <div>
+                    <Button type="button" variant="outline" className="w-full h-32 flex flex-col gap-2" onClick={() => fileInputRef.current?.click()}>
+                      <Camera className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Upload a photo</span>
+                    </Button>
+                    <div className="mt-2 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground font-medium mb-1">Tips for the best portrait:</p>
+                      <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
+                        <li>Choose a well-lit photo</li>
+                        <li>Just one pet in the picture</li>
+                        <li>Facing forward works best</li>
+                        <li>Don't have one handy? You can add it later!</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => {
+                  if (currentPetIndex > 0) setCurrentPetIndex(currentPetIndex - 1);
+                  else setStep("petCount");
+                }} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
+                <Button onClick={nextPetOrHousehold} disabled={!currentPet.name.trim()} className="gap-1">
+                  {currentPetIndex < pets.length - 1 ? "Next Pet" : "Almost Done"}<ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Household Name Step */}
+          {step === "household" && (
+            <div className="space-y-4">
+              <div>
+                <Label>What should we call your household?</Label>
+                <Input value={householdName} onChange={(e) => setHouseholdName(e.target.value)} autoFocus />
+                <p className="text-xs text-muted-foreground mt-1">This is what shows on your dashboard</p>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                <p className="font-medium mb-1">Here's what we have:</p>
+                <p>{firstName} {lastName} · Home #{homeNumber}</p>
+                <p>{pets.filter(p => p.name).map(p => p.name).join(", ")}</p>
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => { setCurrentPetIndex(pets.length - 1); setStep("petDetail"); }} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
+                <Button onClick={finishSetup} disabled={loading || !householdName.trim()} className="gap-2">
+                  {loading ? "Setting up..." : <><Sparkles className="h-4 w-4" />Let's Go!</>}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Done Step */}
+          {step === "done" && (
             <div className="text-center space-y-4">
-              <CheckCircle className="h-12 w-12 mx-auto text-green-500" />
-              <h2 className="text-lg font-semibold">You're in!</h2>
-              <p className="text-muted-foreground">Welcome to {communityName}. Add your pets and start generating portraits.</p>
-              <Button className="w-full" onClick={() => setLocation("/dashboard")}>Go to Dashboard</Button>
+              <p className="text-muted-foreground">
+                Welcome to {communityName}, {firstName}! Your pets are ready for their portraits.
+              </p>
+              <Button className="w-full gap-2" onClick={() => setLocation("/dashboard")}>
+                <Sparkles className="h-4 w-4" />Go to My Dashboard
+              </Button>
             </div>
           )}
         </CardContent>

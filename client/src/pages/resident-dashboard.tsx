@@ -5,124 +5,56 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog, Plus, Image, Heart, LogOut, Sparkles, Upload, Loader2, ShoppingBag } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dog, Cat, Heart, Sparkles, Upload, Loader2, ShoppingBag, Download, Camera, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { portraitStyles, stylePreviewImages, getStylesBySpecies } from "@/lib/portrait-styles";
+import { portraitStyles, stylePreviewImages, getStylesBySpecies, getStyleCategoriesBySpecies } from "@/lib/portrait-styles";
 
 export default function ResidentDashboard() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isAdmin, isLoading: authLoading, logout, isLoggingOut, session } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [addPetOpen, setAddPetOpen] = useState(false);
-  const [generateOpen, setGenerateOpen] = useState(false);
-  const [selectedPet, setSelectedPet] = useState<any>(null);
+  const token = session?.access_token;
+
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
   const [selectedStyleId, setSelectedStyleId] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [addPetOpen, setAddPetOpen] = useState(false);
   const [petName, setPetName] = useState("");
   const [petSpecies, setPetSpecies] = useState("dog");
   const [petBreed, setPetBreed] = useState("");
   const [petPhoto, setPetPhoto] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const token = session?.access_token;
+  const addPhotoRef = useRef<HTMLInputElement>(null);
 
   const { data: community, isLoading: communityLoading } = useQuery({
     queryKey: ["/api/my-community"],
     queryFn: async () => {
       const res = await fetch("/api/my-community", { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) return null;
       return res.json();
     },
     enabled: !!token,
   });
 
-  const { data: pets, isLoading: petsLoading } = useQuery({
+  const { data: pets = [], isLoading: petsLoading } = useQuery({
     queryKey: ["/api/my-pets"],
     queryFn: async () => {
       const res = await fetch("/api/my-pets", { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 404) return [];
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) return [];
       return res.json();
     },
     enabled: !!token && !!community,
   });
 
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setPetPhoto(reader.result as string);
-    reader.readAsDataURL(file);
-  }
-
-  const addPetMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/my-pets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: petName, species: petSpecies, breed: petBreed || null, originalPhotoUrl: petPhoto }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/my-pets"] });
-      setAddPetOpen(false);
-      setPetName(""); setPetBreed(""); setPetPhoto(null);
-      toast({ title: "Pet added!" });
-    },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
-  async function handleGenerate() {
-    if (!selectedPet || !selectedStyleId) return;
-    setGenerating(true);
-    try {
-      const res = await fetch("/api/generate-portrait", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ dogId: selectedPet.id, styleId: selectedStyleId }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
-      const { jobId } = await res.json();
-
-      // Poll for result
-      for (let i = 0; i < 60; i++) {
-        await new Promise(r => setTimeout(r, 3000));
-        const jobRes = await fetch(`/api/jobs/${jobId}`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!jobRes.ok) continue;
-        const job = await jobRes.json();
-        if (job.status === "completed") {
-          toast({ title: "Portrait ready!", description: `${selectedPet.name}'s portrait is done.` });
-          queryClient.invalidateQueries({ queryKey: ["/api/my-pets"] });
-          setGenerateOpen(false);
-          setSelectedStyleId(null);
-          setGenerating(false);
-          return;
-        }
-        if (job.status === "failed") {
-          throw new Error(job.error || "Generation failed");
-        }
-      }
-      throw new Error("Generation timed out");
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setGenerating(false);
-    }
-  }
-
   if (!authLoading && !isAuthenticated) { setLocation("/login"); return null; }
+  if (!community && !communityLoading && isAdmin) { setLocation("/admin"); return null; }
   if (authLoading || communityLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
-
-  if (!community && isAdmin) {
-    setLocation("/admin");
-    return null;
-  }
 
   if (!community) {
     return (
@@ -132,163 +64,309 @@ export default function ResidentDashboard() {
             <Dog className="h-12 w-12 mx-auto mb-4 text-primary" />
             <h2 className="text-xl font-serif font-bold mb-2">Join Your Community</h2>
             <p className="text-muted-foreground mb-6">Enter your community code to get started.</p>
-            <Button asChild><Link href="/join">Join a Community</Link></Button>
+            <Button size="lg" asChild><Link href="/join">Join a Community</Link></Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const availableStyles = selectedPet ? getStylesBySpecies(selectedPet.species || "dog") : [];
+  const activePet = selectedPetId ? pets.find((p: any) => p.id === selectedPetId) : pets[0];
+  const activePortrait = activePet?.portrait;
+  const availableStyles = activePet ? getStylesBySpecies(activePet.species || "dog") : [];
+  const categories = activePet ? getStyleCategoriesBySpecies(activePet.species || "dog") : [];
+  const filteredStyles = selectedCategory ? availableStyles.filter(s => s.category === selectedCategory) : availableStyles;
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPetPhoto(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function addPet() {
+    try {
+      const res = await fetch("/api/my-pets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: petName, species: petSpecies, breed: petBreed || null, originalPhotoUrl: petPhoto }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
+      queryClient.invalidateQueries({ queryKey: ["/api/my-pets"] });
+      setAddPetOpen(false);
+      setPetName(""); setPetBreed(""); setPetPhoto(null);
+      toast({ title: "Pet added!" });
+    } catch (err: any) { toast({ title: "Error", description: err.message, variant: "destructive" }); }
+  }
+
+  async function handleGenerate() {
+    if (!activePet || !selectedStyleId) return;
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/generate-portrait", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ dogId: activePet.id, styleId: selectedStyleId }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
+      const { jobId } = await res.json();
+
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const jobRes = await fetch(`/api/jobs/${jobId}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!jobRes.ok) continue;
+        const job = await jobRes.json();
+        if (job.status === "completed") {
+          toast({ title: "Portrait ready!", description: `${activePet.name}'s portrait is done!` });
+          queryClient.invalidateQueries({ queryKey: ["/api/my-pets"] });
+          setSelectedStyleId(null);
+          setGenerating(false);
+          return;
+        }
+        if (job.status === "failed") throw new Error(job.error || "Generation failed");
+      }
+      throw new Error("Generation timed out");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setGenerating(false); }
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b bg-muted/30">
+    <div className="min-h-screen bg-muted/30">
+      {/* Community info bar */}
+      <div className="border-b bg-background">
         <div className="container mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Dog className="h-5 w-5 text-primary" />
-            <div>
-              <span className="font-serif font-bold text-sm">{community.communityName}</span>
-              <span className="text-xs text-muted-foreground ml-2">Home #{community.homeNumber}</span>
-            </div>
+            <span className="font-serif font-bold">{community.displayName || community.communityName}</span>
+            <span className="text-xs text-muted-foreground">Home #{community.homeNumber}</span>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <Link href={`/${community.communitySlug}`}><Heart className="h-4 w-4 mr-1" />Gallery</Link>
+            <Link href={`/${community.communitySlug}`}><Heart className="h-4 w-4 mr-1" />Community Gallery</Link>
           </Button>
         </div>
       </div>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold">My Pets</h2>
-          <Dialog open={addPetOpen} onOpenChange={setAddPetOpen}>
-            <DialogTrigger asChild><Button size="sm" className="gap-1"><Plus className="h-4 w-4" />Add Pet</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add a Pet</DialogTitle></DialogHeader>
-              <form onSubmit={(e) => { e.preventDefault(); addPetMutation.mutate(); }} className="space-y-4">
-                <div><Label>Name</Label><Input value={petName} onChange={(e) => setPetName(e.target.value)} placeholder="e.g. Bella" required /></div>
-                <div>
-                  <Label>Species</Label>
-                  <Select value={petSpecies} onValueChange={setPetSpecies}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="dog">Dog</SelectItem><SelectItem value="cat">Cat</SelectItem></SelectContent></Select>
-                </div>
-                <div><Label>Breed (optional)</Label><Input value={petBreed} onChange={(e) => setPetBreed(e.target.value)} placeholder="e.g. Golden Retriever" /></div>
-                <div>
-                  <Label>Photo</Label>
-                  <input type="file" ref={fileInputRef} accept="image/*" onChange={handlePhotoSelect} className="hidden" />
-                  {petPhoto ? (
-                    <div className="relative">
-                      <img src={petPhoto} alt="Pet photo" className="w-full h-48 object-cover rounded-lg" />
-                      <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => { setPetPhoto(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>Change</Button>
-                    </div>
-                  ) : (
-                    <Button type="button" variant="outline" className="w-full h-32 flex flex-col gap-2" onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Upload a photo</span>
-                    </Button>
-                  )}
-                </div>
-                <Button type="submit" className="w-full" disabled={addPetMutation.isPending}>{addPetMutation.isPending ? "Adding..." : "Add Pet"}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
 
-        {petsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{[1, 2].map((i) => <Card key={i} className="animate-pulse"><CardContent className="pt-6 h-48" /></Card>)}</div>
-        ) : !pets || pets.length === 0 ? (
-          <Card className="text-center"><CardContent className="pt-8 pb-6"><Dog className="h-10 w-10 mx-auto mb-3 text-muted-foreground" /><p className="text-muted-foreground mb-4">No pets yet. Add your first pet to get started!</p><Button onClick={() => setAddPetOpen(true)}><Plus className="h-4 w-4 mr-1" />Add Your First Pet</Button></CardContent></Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+
+        {/* Pet Selector (if multiple pets) */}
+        {pets.length > 1 && (
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
             {pets.map((pet: any) => (
-              <Card key={pet.id} className="overflow-hidden">
-                {pet.portrait?.generatedImageUrl ? (
-                  <div className="aspect-square relative">
-                    <img src={pet.portrait.generatedImageUrl} alt={`${pet.name} portrait`} className="w-full h-full object-cover" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                      <p className="text-white font-semibold">{pet.name}</p>
-                      <p className="text-white/70 text-sm">{pet.breed || pet.species}</p>
-                      {pet.portrait.likeCount > 0 && <div className="flex items-center gap-1 mt-1"><Heart className="h-3 w-3 text-red-400 fill-red-400" /><span className="text-white/80 text-xs">{pet.portrait.likeCount}</span></div>}
-                    </div>
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <Button size="sm" className="gap-1" onClick={() => { setSelectedPet(pet); setGenerateOpen(true); }}>
-                        <Sparkles className="h-3 w-3" />New Style
-                      </Button>
-                      <Button size="sm" variant="secondary" className="gap-1" asChild>
-                        <Link href={`/order/${pet.portrait.id}`}>
-                          <ShoppingBag className="h-3 w-3" />Order
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <CardContent className="pt-6">
-                    {pet.original_photo_url ? (
-                      <div className="aspect-square rounded-lg overflow-hidden mb-4">
-                        <img src={pet.original_photo_url} alt={pet.name} className="w-full h-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="aspect-square bg-muted rounded-lg flex flex-col items-center justify-center mb-4">
-                        <Image className="h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-xs text-muted-foreground">No photo yet</p>
-                      </div>
-                    )}
-                    <h3 className="font-semibold">{pet.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{pet.breed || pet.species}</p>
-                    <Button size="sm" className="w-full gap-1" onClick={() => { setSelectedPet(pet); setGenerateOpen(true); }} disabled={!pet.original_photo_url}>
-                      <Sparkles className="h-4 w-4" />Generate Portrait
-                    </Button>
-                  </CardContent>
-                )}
-              </Card>
+              <Button
+                key={pet.id}
+                variant={activePet?.id === pet.id ? "default" : "outline"}
+                size="lg"
+                className="gap-2 shrink-0 text-base px-6 py-3"
+                onClick={() => { setSelectedPetId(pet.id); setSelectedStyleId(null); }}
+              >
+                {pet.species === "cat" ? <Cat className="h-5 w-5" /> : <Dog className="h-5 w-5" />}
+                {pet.name}
+              </Button>
             ))}
+            <Button variant="ghost" size="lg" className="gap-2 shrink-0" onClick={() => setAddPetOpen(true)}>
+              <Plus className="h-5 w-5" />Add Pet
+            </Button>
           </div>
         )}
 
-        {/* Generate Portrait Dialog */}
-        <Dialog open={generateOpen} onOpenChange={(open) => { setGenerateOpen(open); if (!open) { setSelectedStyleId(null); setGenerating(false); } }}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Generate Portrait for {selectedPet?.name}</DialogTitle>
-            </DialogHeader>
+        {pets.length === 0 ? (
+          <Card className="text-center">
+            <CardContent className="pt-8 pb-6">
+              <Dog className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-xl font-serif font-bold mb-2">Add Your First Pet</h2>
+              <p className="text-muted-foreground mb-6">Let's get started by adding your pet's info and a photo.</p>
+              <Button size="lg" onClick={() => setAddPetOpen(true)} className="gap-2 text-lg px-8 py-4">
+                <Plus className="h-5 w-5" />Add My Pet
+              </Button>
+            </CardContent>
+          </Card>
+        ) : activePet && (
+          <>
+            {/* Pet Profile + Portrait Preview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Left: Pet Photo */}
+              <Card>
+                <CardContent className="p-4">
+                  <h2 className="font-serif font-bold text-xl mb-3">{activePet.name}</h2>
+                  <p className="text-sm text-muted-foreground mb-3">{activePet.breed || activePet.species} {activePet.age ? `· ${activePet.age}` : ""}</p>
+                  {activePet.original_photo_url ? (
+                    <img src={activePet.original_photo_url} alt={activePet.name} className="w-full aspect-square object-cover rounded-lg" />
+                  ) : (
+                    <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center">
+                      <Camera className="h-10 w-10 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">No photo yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Right: Current Portrait */}
+              <Card>
+                <CardContent className="p-4">
+                  <h2 className="font-serif font-bold text-xl mb-3">
+                    {activePortrait ? "Current Portrait" : "No Portrait Yet"}
+                  </h2>
+                  {activePortrait?.generatedImageUrl ? (
+                    <>
+                      <img src={activePortrait.generatedImageUrl} alt={`${activePet.name} portrait`} className="w-full aspect-square object-cover rounded-lg mb-3" />
+                      <div className="flex gap-2">
+                        <Button size="lg" className="flex-1 gap-2 text-base" asChild>
+                          <a href={activePortrait.generatedImageUrl} download={`${activePet.name}-portrait.png`}><Download className="h-5 w-5" />Download</a>
+                        </Button>
+                        <Button size="lg" variant="outline" className="flex-1 gap-2 text-base" asChild>
+                          <Link href={`/order/${activePortrait.id}`}><ShoppingBag className="h-5 w-5" />Order Keepsake</Link>
+                        </Button>
+                      </div>
+                      {activePortrait.likeCount > 0 && (
+                        <p className="text-center text-sm text-muted-foreground mt-2">
+                          <Heart className="h-3 w-3 inline text-red-400 fill-red-400" /> {activePortrait.likeCount} {activePortrait.likeCount === 1 ? "vote" : "votes"} in the gallery
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full aspect-square bg-muted rounded-lg flex flex-col items-center justify-center">
+                      <Sparkles className="h-10 w-10 text-primary mb-3" />
+                      <p className="text-lg font-semibold">Ready for a portrait!</p>
+                      <p className="text-sm text-muted-foreground mt-1">Pick a style below to get started</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Generate Portrait Section */}
             {generating ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-4">
-                <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                <p className="text-muted-foreground">Creating {selectedPet?.name}'s portrait...</p>
-                <p className="text-xs text-muted-foreground">This usually takes 30-60 seconds</p>
-              </div>
+              <Card className="text-center">
+                <CardContent className="py-12">
+                  <Loader2 className="h-16 w-16 text-primary animate-spin mx-auto mb-4" />
+                  <h2 className="text-xl font-serif font-bold">Creating {activePet.name}'s portrait...</h2>
+                  <p className="text-muted-foreground mt-2">This usually takes 30-60 seconds. Hang tight!</p>
+                </CardContent>
+              </Card>
             ) : (
-              <>
-                <p className="text-sm text-muted-foreground mb-4">Choose a style for {selectedPet?.name}'s AI portrait:</p>
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                  {availableStyles.map((style) => {
-                    const previewUrl = stylePreviewImages[style.name];
-                    const isSelected = selectedStyleId === style.id;
-                    return (
-                      <button
-                        key={style.id}
-                        className={`rounded-lg overflow-hidden border-2 transition-all ${isSelected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
-                        onClick={() => setSelectedStyleId(style.id)}
-                      >
-                        <div className="aspect-square relative">
-                          {previewUrl ? (
-                            <img src={previewUrl} alt={style.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center"><Sparkles className="h-5 w-5 text-muted-foreground" /></div>
-                          )}
-                        </div>
-                        <p className="text-xs p-1.5 text-center font-medium truncate">{style.name}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-                <Button className="w-full mt-4 gap-2" disabled={!selectedStyleId} onClick={handleGenerate}>
-                  <Sparkles className="h-4 w-4" />
-                  Generate Portrait
-                </Button>
-              </>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-serif font-bold flex items-center justify-center gap-2">
+                      <Sparkles className="h-6 w-6 text-primary" />
+                      Let's Create a Masterpiece
+                    </h2>
+                    <p className="text-muted-foreground mt-2 text-lg">
+                      Pick a style for {activePet.name} — then click the big orange button!
+                    </p>
+                  </div>
+
+                  {/* Category filters */}
+                  <div className="flex flex-wrap gap-2 mb-4 justify-center">
+                    <Button
+                      size="lg"
+                      variant={selectedCategory === null ? "default" : "outline"}
+                      onClick={() => setSelectedCategory(null)}
+                      className="text-base"
+                    >All Styles</Button>
+                    {categories.map(cat => (
+                      <Button
+                        key={cat}
+                        size="lg"
+                        variant={selectedCategory === cat ? "default" : "outline"}
+                        onClick={() => setSelectedCategory(cat)}
+                        className="text-base"
+                      >{cat}</Button>
+                    ))}
+                  </div>
+
+                  {/* Style Grid */}
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
+                    {filteredStyles.map((style) => {
+                      const previewUrl = stylePreviewImages[style.name];
+                      const isSelected = selectedStyleId === style.id;
+                      return (
+                        <button
+                          key={style.id}
+                          className={`rounded-lg overflow-hidden border-3 transition-all ${isSelected ? "border-primary ring-2 ring-primary/30 scale-105" : "border-transparent hover:border-primary/50"}`}
+                          onClick={() => setSelectedStyleId(style.id)}
+                        >
+                          <div className="aspect-square relative">
+                            {previewUrl ? (
+                              <img src={previewUrl} alt={style.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-muted flex items-center justify-center"><Sparkles className="h-5 w-5 text-muted-foreground" /></div>
+                            )}
+                          </div>
+                          <p className="text-xs p-2 text-center font-medium truncate">{style.name}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Generate Button — BIG */}
+                  <Button
+                    size="lg"
+                    className="w-full gap-3 h-16 text-xl font-semibold"
+                    disabled={!selectedStyleId || !activePet.original_photo_url}
+                    onClick={handleGenerate}
+                  >
+                    <Sparkles className="h-6 w-6" />
+                    Generate {activePet.name}'s Portrait
+                  </Button>
+                  {!activePet.original_photo_url && (
+                    <p className="text-center text-sm text-amber-600 mt-2">
+                      You need to upload a photo of {activePet.name} first before generating a portrait.
+                    </p>
+                  )}
+                  {selectedStyleId && (
+                    <p className="text-center text-sm text-muted-foreground mt-2">
+                      Style: {availableStyles.find(s => s.id === selectedStyleId)?.name}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             )}
-          </DialogContent>
-        </Dialog>
+          </>
+        )}
       </div>
+
+      {/* Add Pet Dialog */}
+      <Dialog open={addPetOpen} onOpenChange={setAddPetOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add a Pet</DialogTitle></DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); addPet(); }} className="space-y-4">
+            <div><Label>Name</Label><Input value={petName} onChange={(e) => setPetName(e.target.value)} placeholder="e.g. Bella" required /></div>
+            <div>
+              <Label>Dog or Cat?</Label>
+              <div className="flex gap-2 mt-1">
+                <Button type="button" size="lg" variant={petSpecies === "dog" ? "default" : "outline"} className="flex-1 gap-2 text-base" onClick={() => setPetSpecies("dog")}><Dog className="h-5 w-5" />Dog</Button>
+                <Button type="button" size="lg" variant={petSpecies === "cat" ? "default" : "outline"} className="flex-1 gap-2 text-base" onClick={() => setPetSpecies("cat")}><Cat className="h-5 w-5" />Cat</Button>
+              </div>
+            </div>
+            <div><Label>Breed (optional)</Label><Input value={petBreed} onChange={(e) => setPetBreed(e.target.value)} placeholder="e.g. Golden Retriever" /></div>
+            <div>
+              <Label>Photo</Label>
+              <input type="file" ref={addPhotoRef} accept="image/*" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => setPetPhoto(reader.result as string);
+                reader.readAsDataURL(file);
+              }} className="hidden" />
+              {petPhoto ? (
+                <div className="relative">
+                  <img src={petPhoto} alt="Pet" className="w-full h-48 object-cover rounded-lg" />
+                  <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => { setPetPhoto(null); if (addPhotoRef.current) addPhotoRef.current.value = ""; }}>Change</Button>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="w-full h-24 flex flex-col gap-1" onClick={() => addPhotoRef.current?.click()}>
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Upload photo (can add later)</span>
+                </Button>
+              )}
+            </div>
+            <Button type="submit" size="lg" className="w-full text-base">Add Pet</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
