@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, Check, Gift, CreditCard, Loader2, X, Sparkles, DollarSign } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Gift, CreditCard, Loader2, X, Sparkles, DollarSign, Dog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Plan {
@@ -142,6 +142,141 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
     ? ((selectedPlan.priceMonthlyCents * 12) - selectedPlan.priceAnnualCents) / 100
     : 0;
 
+  // Step 3 renders as a full standalone page, not inside a card
+  if (step === 3 && selectedPlan) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-sm font-medium">Pawtrait Communities — {selectedPlan.name} Plan</span>
+          </div>
+          <h1 className="font-serif font-bold text-3xl md:text-4xl leading-tight mb-4">
+            Turn Your Residents' Pets Into a Shared Community Experience
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            Delight residents with personalized pet portraits, custom keepsakes, and a vibrant community gallery — all with zero operational work for your team.
+          </p>
+        </div>
+
+        {/* Divider */}
+        <hr className="my-8 border-border" />
+
+        {/* What's Included */}
+        <div className="mb-10">
+          <h2 className="font-serif font-bold text-xl mb-6 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />What's Included
+          </h2>
+          <div className="space-y-5">
+            {[
+              { title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents can browse pet portraits, favorite the ones they love, and enjoy a shared community experience" },
+              { title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
+              { title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits are featured and delivered as high-resolution downloads for display on your community Pet Wall" },
+              { title: "Custom Pet Keepsakes", desc: "Transform portraits into calendars, framed artwork, and gift-ready products" },
+              { title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected and involved" },
+              { title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
+              { title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs and resident activities" },
+            ].map((feature, i) => (
+              <div key={i} className="flex items-start gap-4">
+                <Check className="h-6 w-6 text-green-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-bold text-base">{feature.title}</p>
+                  <p className="text-muted-foreground mt-0.5">{feature.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <hr className="my-8 border-border" />
+
+        {/* Simple, Transparent Pricing */}
+        <div className="mb-10">
+          <h2 className="font-serif font-bold text-xl mb-4 flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />Simple, Transparent Pricing
+          </h2>
+          <div className="space-y-1">
+            <p className="text-lg font-bold">${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}/month</p>
+            <p className="text-muted-foreground">or</p>
+            <p className="text-lg font-bold">
+              ${(selectedPlan.priceAnnualCents / 100).toLocaleString()}/year
+              {annualSavings > 0 && <span className="text-green-600 font-normal italic ml-2">(save ${annualSavings.toFixed(0)})</span>}
+            </p>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <hr className="my-8 border-border" />
+
+        {/* Try It Risk-Free */}
+        <div className="mb-10">
+          <h2 className="font-serif font-bold text-xl mb-4 flex items-center gap-2">
+            <Gift className="h-5 w-5 text-primary" />Try It Risk-Free
+          </h2>
+          <p className="text-lg font-semibold">Start your 14-day free trial — no credit card required</p>
+          <p className="text-primary mt-1">Full access. Cancel anytime.</p>
+        </div>
+
+        {/* Divider */}
+        <hr className="my-8 border-border" />
+
+        {/* Closing Pitch */}
+        <div className="mb-10">
+          <h2 className="font-serif font-bold text-xl mb-4 flex items-center gap-2">
+            <Dog className="h-5 w-5 text-primary" />A Simple Way to Delight Your Residents
+          </h2>
+          <p className="text-lg text-muted-foreground">Your residents already love their pets.</p>
+          <p className="text-lg text-muted-foreground">Pawtrait gives them a meaningful, fun way to celebrate them — together.</p>
+        </div>
+
+        {/* Divider */}
+        <hr className="my-8 border-border" />
+
+        {/* Activation Buttons */}
+        <div className="space-y-4 mb-8">
+          <Button
+            className="w-full gap-2 h-14 text-lg font-semibold"
+            disabled={loading}
+            onClick={() => createAndActivate("trial")}
+          >
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Gift className="h-5 w-5" />}
+            Start Your Free 14-Day Trial
+          </Button>
+
+          <div className="flex gap-3">
+            <Button
+              className="flex-1 gap-2 h-12 text-base"
+              variant="outline"
+              disabled={loading}
+              onClick={() => createAndActivate("monthly")}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+              Monthly — ${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}/mo
+            </Button>
+            <Button
+              className="flex-1 gap-2 h-12 text-base"
+              variant="outline"
+              disabled={loading}
+              onClick={() => createAndActivate("annual")}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+              Annual — ${(selectedPlan.priceAnnualCents / 100).toLocaleString()}/yr
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center pb-8">
+          <Button variant="outline" onClick={() => setStep(2)} disabled={loading} className="gap-1"><ArrowLeft className="h-4 w-4" /> Back</Button>
+          <Button variant="ghost" onClick={onCancel} disabled={loading} className="text-muted-foreground">
+            No thanks — maybe later
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Card className="mb-6 bg-background">
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
@@ -238,129 +373,6 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
           </div>
         )}
 
-        {/* Step 3 — Sales Page (ChatGPT copy) */}
-        {step === 3 && selectedPlan && (
-          <div className="space-y-8">
-            {/* Hero */}
-            <div className="text-center space-y-3">
-              <p className="text-sm font-medium text-primary tracking-wide uppercase">Pawtrait Communities — {selectedPlan.name} Plan</p>
-              <h2 className="font-serif font-bold text-2xl md:text-3xl leading-tight">
-                Turn Your Residents' Pets Into a Shared Community Experience
-              </h2>
-              <p className="text-muted-foreground max-w-lg mx-auto">
-                Delight residents with personalized pet portraits, custom keepsakes, and a vibrant community gallery — all with zero operational work for your team.
-              </p>
-            </div>
-
-            {/* What's Included */}
-            <div>
-              <h3 className="font-serif font-bold text-lg mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />What's Included
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents can browse pet portraits, favorite the ones they love, and enjoy a shared community experience" },
-                  { title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
-                  { title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits are featured and delivered as high-resolution downloads for display on your community Pet Wall" },
-                  { title: "Custom Pet Keepsakes", desc: "Transform portraits into calendars, framed artwork, and gift-ready products" },
-                  { title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected and involved" },
-                  { title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
-                  { title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs and resident activities" },
-                ].map((feature, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-                    <Check className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-semibold text-sm">{feature.title}</p>
-                      <p className="text-sm text-muted-foreground">{feature.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Pricing */}
-            <div>
-              <h3 className="font-serif font-bold text-lg mb-3 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />Simple, Transparent Pricing
-              </h3>
-              <div className="p-5 rounded-lg border-2 border-primary bg-primary/5">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6">
-                  <div>
-                    <span className="text-3xl font-bold">${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <span className="text-muted-foreground">or</span>
-                  <div>
-                    <span className="text-3xl font-bold">${(selectedPlan.priceAnnualCents / 100).toLocaleString()}</span>
-                    <span className="text-muted-foreground">/year</span>
-                    {annualSavings > 0 && <span className="text-green-600 text-sm ml-2 italic">(save ${annualSavings.toFixed(0)})</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Try It Risk-Free */}
-            <div>
-              <h3 className="font-serif font-bold text-lg mb-3 flex items-center gap-2">
-                <Gift className="h-5 w-5 text-primary" />Try It Risk-Free
-              </h3>
-              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                <p className="font-semibold text-blue-800">Start your 14-day free trial — no credit card required</p>
-                <p className="text-sm text-blue-600 mt-1">Full access. Cancel anytime.</p>
-              </div>
-            </div>
-
-            {/* Activation buttons */}
-            <div className="space-y-3">
-              <Button
-                className="w-full gap-2 h-13 text-base font-semibold"
-                disabled={loading}
-                onClick={() => createAndActivate("trial")}
-              >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Gift className="h-5 w-5" />}
-                Start Your Free 14-Day Trial
-              </Button>
-
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 gap-2 h-11"
-                  variant="outline"
-                  disabled={loading}
-                  onClick={() => createAndActivate("monthly")}
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                  Monthly — ${(selectedPlan.priceMonthlyCents / 100).toFixed(0)}/mo
-                </Button>
-                <Button
-                  className="flex-1 gap-2 h-11"
-                  variant="outline"
-                  disabled={loading}
-                  onClick={() => createAndActivate("annual")}
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                  Annual — ${(selectedPlan.priceAnnualCents / 100).toLocaleString()}/yr
-                </Button>
-              </div>
-            </div>
-
-            {/* Closing pitch */}
-            <div className="border-t pt-6 text-center space-y-2">
-              <p className="font-serif text-lg text-muted-foreground italic">
-                Your residents already love their pets.
-              </p>
-              <p className="font-serif text-lg text-muted-foreground italic">
-                Pawtrait gives them a meaningful, fun way to celebrate them — together.
-              </p>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <Button variant="outline" onClick={() => setStep(2)} disabled={loading} className="gap-1"><ArrowLeft className="h-4 w-4" /> Back</Button>
-              <Button variant="ghost" onClick={onCancel} disabled={loading} className="text-muted-foreground text-sm">
-                No thanks — maybe later
-              </Button>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
