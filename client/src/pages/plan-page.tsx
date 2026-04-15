@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check, Gift, CreditCard, Loader2, Sparkles, DollarSign, Dog } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Check, Gift, CreditCard, Loader2, Sparkles, DollarSign, Dog, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { CatFilled } from "@/components/cat-filled";
 
 interface WizardState {
   name: string;
@@ -96,96 +98,111 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="max-w-2xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-muted/10">
+      <div className="max-w-3xl mx-auto px-6 py-16">
 
-        {/* Hero — Plan name is the star */}
-        <div className="text-center mb-12">
-          <h1 className="font-serif font-bold text-4xl md:text-5xl text-primary mb-2">
-            {plan.name} Plan
+        {/* Hero */}
+        <div className="text-center mb-16">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <Dog className="h-8 w-8 text-primary" />
+            <CatFilled className="h-8 w-8 text-primary" />
+          </div>
+          <p className="text-primary font-semibold tracking-wide uppercase text-sm mb-4">Pawtrait Communities</p>
+          <h1 className="font-serif font-bold text-5xl md:text-6xl mb-4">
+            <span className="text-primary">{plan.name}</span> Plan
           </h1>
-          <p className="text-lg text-muted-foreground mb-6">Pawtrait Communities</p>
-          <h2 className="font-serif font-bold text-2xl md:text-3xl leading-tight mb-4">
-            Turn Your Residents' Pets Into a Shared Community Experience
+          <div className="w-24 h-1 bg-primary mx-auto rounded-full mb-8" />
+          <h2 className="font-serif text-2xl md:text-3xl leading-tight mb-6 text-foreground/90">
+            Turn Your Residents' Pets Into a<br />Shared Community Experience
           </h2>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
             Delight residents with personalized pet portraits, custom keepsakes, and a vibrant community gallery — all with zero operational work for your team.
           </p>
         </div>
 
-        <hr className="my-10 border-border" />
-
         {/* What's Included */}
-        <div className="mb-12">
-          <h2 className="font-serif font-bold text-2xl mb-8 flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-primary" />What's Included
-          </h2>
-          <div className="space-y-6">
-            {[
-              { title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents can browse pet portraits, favorite the ones they love, and enjoy a shared community experience" },
-              { title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
-              { title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits are featured and delivered as high-resolution downloads for display on your community Pet Wall" },
-              { title: "Custom Pet Keepsakes", desc: "Transform portraits into calendars, framed artwork, and gift-ready products" },
-              { title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected and involved" },
-              { title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
-              { title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs and resident activities" },
-            ].map((feature, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <Check className="h-6 w-6 text-green-600 mt-1 shrink-0" />
-                <div>
-                  <p className="font-bold text-lg">{feature.title}</p>
-                  <p className="text-muted-foreground mt-1">{feature.desc}</p>
+        <Card className="mb-10 border-0 shadow-lg">
+          <CardContent className="p-8">
+            <h2 className="font-serif font-bold text-2xl mb-8 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><Sparkles className="h-5 w-5 text-primary" /></div>
+              What's Included
+            </h2>
+            <div className="space-y-6">
+              {[
+                { title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents can browse pet portraits, favorite the ones they love, and enjoy a shared community experience" },
+                { title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
+                { title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits are featured and delivered as high-resolution downloads for display on your community Pet Wall" },
+                { title: "Custom Pet Keepsakes", desc: "Transform portraits into calendars, framed artwork, and gift-ready products" },
+                { title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected and involved" },
+                { title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
+                { title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs and resident activities" },
+              ].map((feature, i) => (
+                <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-green-50/50 border border-green-100/50">
+                  <div className="p-1 rounded-full bg-green-100 mt-0.5">
+                    <Check className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-base">{feature.title}</p>
+                    <p className="text-muted-foreground mt-1 leading-relaxed">{feature.desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <hr className="my-10 border-border" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Pricing */}
-        <div className="mb-12">
-          <h2 className="font-serif font-bold text-2xl mb-6 flex items-center gap-3">
-            <DollarSign className="h-6 w-6 text-primary" />Simple, Transparent Pricing
-          </h2>
-          <div className="space-y-2">
-            <p className="text-2xl font-bold">${(plan.priceMonthlyCents / 100).toFixed(0)}/month</p>
-            <p className="text-muted-foreground text-lg">or</p>
-            <p className="text-2xl font-bold">
-              ${(plan.priceAnnualCents / 100).toLocaleString()}/year
-              {annualSavings > 0 && <span className="text-green-600 font-normal italic text-lg ml-3">(save ${annualSavings.toFixed(0)})</span>}
-            </p>
-          </div>
-        </div>
-
-        <hr className="my-10 border-border" />
+        <Card className="mb-10 border-2 border-primary shadow-lg">
+          <CardContent className="p-8">
+            <h2 className="font-serif font-bold text-2xl mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><DollarSign className="h-5 w-5 text-primary" /></div>
+              Simple, Transparent Pricing
+            </h2>
+            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
+              <div>
+                <span className="text-4xl font-bold text-primary">${(plan.priceMonthlyCents / 100).toFixed(0)}</span>
+                <span className="text-xl text-muted-foreground">/month</span>
+              </div>
+              <span className="text-2xl text-muted-foreground font-light">or</span>
+              <div>
+                <span className="text-4xl font-bold text-primary">${(plan.priceAnnualCents / 100).toLocaleString()}</span>
+                <span className="text-xl text-muted-foreground">/year</span>
+                {annualSavings > 0 && (
+                  <span className="ml-3 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                    Save ${annualSavings.toFixed(0)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Try It Risk-Free */}
-        <div className="mb-12">
-          <h2 className="font-serif font-bold text-2xl mb-4 flex items-center gap-3">
-            <Gift className="h-6 w-6 text-primary" />Try It Risk-Free
-          </h2>
-          <p className="text-xl font-semibold">Start your 14-day free trial — no credit card required</p>
-          <p className="text-primary text-lg mt-2">Full access. Cancel anytime.</p>
-        </div>
-
-        <hr className="my-10 border-border" />
+        <Card className="mb-10 border-0 shadow-lg bg-blue-50">
+          <CardContent className="p-8">
+            <h2 className="font-serif font-bold text-2xl mb-4 flex items-center gap-3 text-blue-900">
+              <div className="p-2 rounded-lg bg-blue-100"><Gift className="h-5 w-5 text-blue-600" /></div>
+              Try It Risk-Free
+            </h2>
+            <p className="text-xl font-semibold text-blue-800">Start your 14-day free trial — no credit card required</p>
+            <p className="text-blue-600 text-lg mt-2">Full access. Cancel anytime.</p>
+          </CardContent>
+        </Card>
 
         {/* Closing Pitch */}
-        <div className="mb-12">
-          <h2 className="font-serif font-bold text-2xl mb-4 flex items-center gap-3">
-            <Dog className="h-6 w-6 text-primary" />A Simple Way to Delight Your Residents
-          </h2>
-          <p className="text-xl text-muted-foreground">Your residents already love their pets.</p>
-          <p className="text-xl text-muted-foreground mt-1">Pawtrait gives them a meaningful, fun way to celebrate them — together.</p>
+        <div className="text-center mb-12 py-8">
+          <Heart className="h-8 w-8 text-primary mx-auto mb-4" />
+          <h2 className="font-serif font-bold text-2xl mb-4">A Simple Way to Delight Your Residents</h2>
+          <p className="text-xl text-muted-foreground italic leading-relaxed max-w-lg mx-auto">
+            Your residents already love their pets.<br />
+            Pawtrait gives them a meaningful, fun way to celebrate them — together.
+          </p>
         </div>
 
-        <hr className="my-10 border-border" />
-
-        {/* Activation */}
+        {/* Activation Buttons */}
         <div className="space-y-4 mb-10">
           <Button
-            className="w-full gap-3 h-16 text-xl font-semibold"
+            className="w-full gap-3 h-16 text-xl font-semibold shadow-lg"
             disabled={loading}
             onClick={() => createAndActivate("trial")}
           >
@@ -193,7 +210,7 @@ export default function PlanPage() {
             Start Your Free 14-Day Trial
           </Button>
 
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <Button
               className="flex-1 gap-2 h-14 text-lg"
               variant="outline"
@@ -215,7 +232,8 @@ export default function PlanPage() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center pb-12">
+        {/* Navigation */}
+        <div className="flex justify-between items-center pb-16">
           <Button variant="outline" onClick={goBack} disabled={loading} className="gap-2 h-11">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
