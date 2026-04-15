@@ -8,7 +8,7 @@ import { Dog, Cat, CheckCircle, Camera, Upload, ArrowLeft, ArrowRight, Sparkles 
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
-type WizardStep = "code" | "name" | "home" | "contact" | "petCount" | "petDetail" | "household" | "done";
+type WizardStep = "code" | "name" | "home" | "contact" | "petCount" | "petDetail" | "household" | "homeTaken" | "done";
 
 export default function JoinCommunity() {
   const [, setLocation] = useLocation();
@@ -124,7 +124,12 @@ export default function JoinCommunity() {
         }),
       });
       const regData = await regRes.json();
-      if (!regRes.ok) throw new Error(regData.error || "Registration failed");
+      if (regRes.status === 409 && regData.error === "home_number_taken") {
+        setStep("homeTaken");
+        setLoading(false);
+        return;
+      }
+      if (!regRes.ok) throw new Error(regData.message || regData.error || "Registration failed");
       setCommunitySlug(regData.communitySlug);
 
       // Add each pet
@@ -198,6 +203,12 @@ export default function JoinCommunity() {
             <>
               <h1 className="text-2xl font-serif font-bold">Almost done!</h1>
               <p className="text-sm text-muted-foreground">What should we call your household?</p>
+            </>
+          )}
+          {step === "homeTaken" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Just a Moment</h1>
+              <p className="text-sm text-muted-foreground">We need to check something with your community manager</p>
             </>
           )}
           {step === "done" && (
@@ -373,6 +384,27 @@ export default function JoinCommunity() {
                   {loading ? "Setting up..." : <><Sparkles className="h-4 w-4" />Let's Go!</>}
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* Home Number Taken Step */}
+          {step === "homeTaken" && (
+            <div className="text-center space-y-4">
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-amber-800 font-medium mb-2">Are you a new resident at this address?</p>
+                <p className="text-amber-700 text-sm">
+                  It looks like home #{homeNumber} already has a registered resident. We take extra care when it comes to your fur-babies' pictures!
+                </p>
+                <p className="text-amber-700 text-sm mt-2">
+                  We're going to send a quick note to your community manager to make sure the previous resident's records are safely archived. We'll get you signed up as soon as we hear back from them.
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your community manager will be notified and you'll be able to complete signup once they confirm. This usually takes less than a day.
+              </p>
+              <Button variant="outline" className="w-full" onClick={() => setStep("home")}>
+                Go Back — Try a Different Home Number
+              </Button>
             </div>
           )}
 

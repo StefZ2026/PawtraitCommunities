@@ -48,17 +48,6 @@ export function registerCommunityRoutes(app: Express): void {
         subscriptionStatus: "pending", speciesHandled: "both", onboardingCompleted: true, isActive: true,
       } as any);
 
-      // Auto-register admin as community admin resident
-      const userEmail = req.user.claims.email || "";
-      try {
-        await storage.createResident({
-          supabaseAuthId: req.user.claims.sub, organizationId: org.id,
-          homeNumber: "MGR", displayName: contactName || "Community Manager",
-          email: userEmail, phone: null, role: "admin",
-          notificationPreference: "email",
-        } as any);
-      } catch {}
-
       res.status(201).json({
         id: org.id, name: org.name, slug: org.slug, communityCode, totalHomes,
         planId, planName: selectedPlan?.name || "No plan",
@@ -87,15 +76,6 @@ export function registerCommunityRoutes(app: Express): void {
         name, slug, communityCode, totalHomes, contactName, contactEmail: contactEmail || null,
         ownerId: userId, planId, subscriptionStatus: "pending",
         speciesHandled: "both", onboardingCompleted: true, isActive: true,
-      } as any);
-
-      // Auto-register owner as community admin resident
-      const userEmail = req.user.claims.email || "";
-      await storage.createResident({
-        supabaseAuthId: userId, organizationId: org.id,
-        homeNumber: "MGR", displayName: contactName || "Community Manager",
-        email: userEmail, phone: null, role: "admin",
-        notificationPreference: "email",
       } as any);
 
       res.status(201).json({
@@ -288,6 +268,24 @@ export function registerCommunityRoutes(app: Express): void {
     } catch (error: any) { res.status(500).json({ error: "Failed to add resident" }); }
   });
 
+  // Community: Archive a resident (home turnover)
+  app.post("/api/community/:orgId/residents/:residentId/archive", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const residentId = parseInt(req.params.residentId);
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === ADMIN_EMAIL;
+      if (!isAdminUser) {
+        const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
+        if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
+      }
+      await pool.query("UPDATE residents SET is_active = false, archived_at = NOW() WHERE id = $1 AND organization_id = $2", [residentId, orgId]);
+      console.log(`[community] Archived resident ${residentId} in org ${orgId}`);
+      res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ error: "Failed to archive resident" }); }
+  });
+
   // Admin: Edit community
   app.patch("/api/admin/communities/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
@@ -362,6 +360,20 @@ export function registerCommunityRoutes(app: Express): void {
       if (!org) return res.status(400).json({ error: "Invalid community code" });
       const existing = await storage.getResidentByAuthId(userId, org.id);
       if (existing) return res.status(400).json({ error: "Already registered in this community" });
+
+      // Check if home number is already taken by an active resident
+      const homeCheck = await pool.query(
+        "SELECT id, display_name FROM residents WHERE organization_id = $1 AND home_number = $2 AND is_active = true",
+        [org.id, homeNumber.trim()]
+      );
+      if (homeCheck.rows.length > 0) {
+        return res.status(409).json({
+          error: "home_number_taken",
+          message: "This home number already has a registered resident.",
+          existingResident: homeCheck.rows[0].display_name || `Home #${homeNumber.trim()}`,
+        });
+      }
+
       const resident = await storage.createResident({ supabaseAuthId: userId, organizationId: org.id, homeNumber: homeNumber.trim(), displayName: displayName || null, email: userEmail, phone: phone || null, role: "resident", notificationPreference: "email" });
       res.status(201).json({ residentId: resident.id, communityId: org.id, communityName: org.name, communitySlug: org.slug, homeNumber: resident.homeNumber });
     } catch (error: any) { console.error("Error registering:", error.message); res.status(500).json({ error: "Registration failed" }); }

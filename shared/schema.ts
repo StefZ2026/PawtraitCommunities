@@ -76,6 +76,7 @@ export const residents = pgTable("residents", {
   role: text("role").default("resident").notNull(),
   notificationPreference: text("notification_preference").default("email"),
   isActive: boolean("is_active").default(true).notNull(),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
