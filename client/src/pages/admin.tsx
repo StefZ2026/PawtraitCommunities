@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import {
   Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
-  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle,
+  Home, LogOut, Pencil, Trash2, TrendingUp, AlertTriangle,
   Wallet, MessageSquare
 } from "lucide-react";
 import { CatFilled } from "@/components/cat-filled";
@@ -57,7 +57,7 @@ export default function Admin() {
   // Stats derived from communities data
   const totalCommunities = communities.length;
   const activeSubs = communities.filter((c: any) => c.subscriptionStatus === "active").length;
-  const trialCount = communities.filter((c: any) => c.subscriptionStatus === "trial" || (!c.subscriptionStatus || c.subscriptionStatus === "pending")).length;
+
   const pastDueCount = communities.filter((c: any) => c.subscriptionStatus === "past_due").length;
   const totalResidents = communities.reduce((sum: number, c: any) => sum + (c.residentCount || 0), 0);
   const totalPets = communities.reduce((sum: number, c: any) => sum + (c.dogCount || 0), 0);

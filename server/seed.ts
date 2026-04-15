@@ -183,59 +183,10 @@ export async function seedDatabase() {
         await pool.query("ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_homes INTEGER");
         console.log("[migration] Subscription plan tier columns ready");
 
-        await pool.query(`CREATE TABLE IF NOT EXISTS residents (
-          id SERIAL PRIMARY KEY, supabase_auth_id VARCHAR NOT NULL, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-          home_number VARCHAR(20) NOT NULL, display_name TEXT, email TEXT NOT NULL, phone TEXT, role TEXT NOT NULL DEFAULT 'resident',
-          notification_preference TEXT DEFAULT 'email', is_active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-        )`);
-        console.log("[migration] Residents table ready");
-
+        // ALTER TABLE additions for columns added after initial schema
         await pool.query("ALTER TABLE dogs ADD COLUMN IF NOT EXISTS resident_id INTEGER REFERENCES residents(id) ON DELETE CASCADE");
         await pool.query("ALTER TABLE portraits ADD COLUMN IF NOT EXISTS opt_out_gallery BOOLEAN DEFAULT false NOT NULL");
         await pool.query("ALTER TABLE portraits ADD COLUMN IF NOT EXISTS like_count INTEGER DEFAULT 0 NOT NULL");
-        console.log("[migration] Dogs + portrait gallery fields ready");
-
-        await pool.query(`CREATE TABLE IF NOT EXISTS portrait_likes (
-          id SERIAL PRIMARY KEY, portrait_id INTEGER NOT NULL REFERENCES portraits(id) ON DELETE CASCADE,
-          resident_id INTEGER NOT NULL REFERENCES residents(id) ON DELETE CASCADE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, UNIQUE(portrait_id, resident_id)
-        )`);
-        console.log("[migration] Portrait likes ready");
-
-        await pool.query(`CREATE TABLE IF NOT EXISTS calendar_projects (
-          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-          resident_id INTEGER NOT NULL REFERENCES residents(id) ON DELETE CASCADE, dog_id INTEGER NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
-          calendar_year INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'uploading', uploaded_photo_count INTEGER NOT NULL DEFAULT 0,
-          generated_image_count INTEGER NOT NULL DEFAULT 0, selected_image_count INTEGER NOT NULL DEFAULT 0, price_cents INTEGER NOT NULL DEFAULT 7500,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-        )`);
-
-        await pool.query(`CREATE TABLE IF NOT EXISTS calendar_project_images (
-          id SERIAL PRIMARY KEY, calendar_project_id INTEGER NOT NULL REFERENCES calendar_projects(id) ON DELETE CASCADE,
-          image_type TEXT NOT NULL, image_url TEXT NOT NULL, style_id INTEGER REFERENCES portrait_styles(id),
-          month_assignment INTEGER, sort_order INTEGER NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-        )`);
-
-        await pool.query(`CREATE TABLE IF NOT EXISTS pet_wall_periods (
-          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-          quarter INTEGER NOT NULL, year INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
-          finalized_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, UNIQUE(organization_id, year, quarter)
-        )`);
-
-        await pool.query(`CREATE TABLE IF NOT EXISTS pet_wall_entries (
-          id SERIAL PRIMARY KEY, pet_wall_period_id INTEGER NOT NULL REFERENCES pet_wall_periods(id) ON DELETE CASCADE,
-          portrait_id INTEGER NOT NULL REFERENCES portraits(id), rank INTEGER NOT NULL,
-          like_count_at_selection INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-        )`);
-
-        await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
-          id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-          resident_id INTEGER REFERENCES residents(id) ON DELETE SET NULL, channel TEXT NOT NULL,
-          recipient_address TEXT NOT NULL, subject TEXT, message_body TEXT NOT NULL, notification_type TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'pending', sent_at TIMESTAMP, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-        )`);
-        console.log("[migration] All future tables ready");
-
         await pool.query("ALTER TABLE merch_orders ADD COLUMN IF NOT EXISTS resident_id INTEGER REFERENCES residents(id)");
         await pool.query("ALTER TABLE merch_orders ADD COLUMN IF NOT EXISTS fulfillment_provider TEXT DEFAULT 'printful'");
         await pool.query("ALTER TABLE merch_orders ADD COLUMN IF NOT EXISTS external_order_id TEXT");

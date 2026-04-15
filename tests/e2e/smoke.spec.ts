@@ -1,30 +1,29 @@
 import { test, expect } from "@playwright/test";
 
-const BASE = "https://pawtrait-communities.onrender.com";
+const BASE = "https://pawtraitcommunities.com";
 
 test.describe("Pawtrait Communities E2E", () => {
   test("home page loads with correct branding", async ({ page }) => {
     await page.goto(BASE);
     await expect(page).toHaveTitle(/Pawtrait Communities/i);
-    await expect(page.getByRole("heading", { name: /Your Pet.*Your Style/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Join Your Community" }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Turn Your Residents.*Pets/i })).toBeVisible();
   });
 
   test("home page shows style previews", async ({ page }) => {
     await page.goto(BASE);
-    await expect(page.getByRole("heading", { name: "Stunning AI Portraits" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Beautiful, Stylized Pet Portraits" })).toBeVisible();
     await expect(page.getByRole("link", { name: "View All Styles" })).toBeVisible();
-    const img = page.locator("img[alt='Renaissance Noble']");
+    const img = page.locator("img[alt='Royal Monarch']");
     await expect(img).toBeVisible();
   });
 
   test("home page shows merch section", async ({ page }) => {
     await page.goto(BASE);
-    await expect(page.getByRole("heading", { name: "Order Beautiful Keepsakes" })).toBeVisible();
-    await expect(page.getByText("Mugs").first()).toBeVisible();
-    await expect(page.getByText("Tote Bags").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Custom Pet Keepsakes" })).toBeVisible();
+    await expect(page.getByText("Ceramic Mugs").first()).toBeVisible();
+    await expect(page.getByText("Canvas Totes").first()).toBeVisible();
     await expect(page.getByText("iPhone Cases").first()).toBeVisible();
-    await expect(page.getByText("Calendars").first()).toBeVisible();
+    await expect(page.getByText("Custom Calendars").first()).toBeVisible();
   });
 
   test("login page renders with tabs", async ({ page }) => {
@@ -77,7 +76,6 @@ test.describe("Pawtrait Communities E2E", () => {
 
   test("404 page for unknown routes", async ({ page }) => {
     await page.goto(`${BASE}/this-does-not-exist-xyz-123`);
-    // With /:slug route, this will try to load as a gallery — should show "Community not found" or empty state
     await page.waitForTimeout(2000);
     const content = await page.textContent("body");
     expect(content).toBeTruthy();

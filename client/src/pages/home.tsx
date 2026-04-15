@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import {
   Heart, Sparkles, Dog, Camera, Users, Image,
-  ShoppingBag, Palette, ArrowRight, LayoutDashboard
+  ShoppingBag, Palette, LayoutDashboard
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 

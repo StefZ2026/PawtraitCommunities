@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Response, NextFunction } from "express";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 

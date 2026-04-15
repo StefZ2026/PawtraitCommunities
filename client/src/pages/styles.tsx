@@ -1,7 +1,6 @@
-import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Dog, Cat, ArrowLeft } from "lucide-react";
+import { Dog, Cat } from "lucide-react";
 import { portraitStyles, stylePreviewImages, getStylesBySpecies, getStyleCategoriesBySpecies } from "@/lib/portrait-styles";
 import { useState } from "react";
 

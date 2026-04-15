@@ -7,6 +7,21 @@ import { uploadToStorage, isDataUri } from "../image-storage";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
+function generateCommunityCode(name: string): string {
+  const codePart = name.split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g, "").substring(0, 8);
+  const year = new Date().getFullYear().toString().slice(-2);
+  return `${codePart}-${year}`;
+}
+
+function matchPlan(plans: any[], totalHomes: number, engagementAnswers?: any, overridePlanId?: number | null): any {
+  if (overridePlanId) return plans.find((p: any) => p.id === overridePlanId) || null;
+  const engagement = engagementAnswers || {};
+  const yesCount = [engagement.hasLifestyleDirector, engagement.hasRegularEvents, engagement.hasNewsletterOrPortal].filter(Boolean).length;
+  if (yesCount >= 2) return plans.find((p: any) => p.sizeTier === "signature") || null;
+  if (totalHomes <= 250) return plans.find((p: any) => p.sizeTier === "standard") || null;
+  return plans.find((p: any) => p.sizeTier === "growth") || null;
+}
+
 export function registerCommunityRoutes(app: Express): void {
 
   // Admin: Create community (with engagement-based tier assignment)
@@ -20,25 +35,10 @@ export function registerCommunityRoutes(app: Express): void {
       const existing = await storage.getOrganizationBySlug(slug);
       if (existing) return res.status(400).json({ error: "This community URL is already taken" });
 
-      const codePart = name.split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g, "").substring(0, 8);
-      const year = new Date().getFullYear().toString().slice(-2);
-      const communityCode = `${codePart}-${year}`;
-
-      // Determine plan: admin override > engagement-based > size-based
+      const communityCode = generateCommunityCode(name);
       const plans = await storage.getAllSubscriptionPlans();
-      let planId = selectedPlanId || null;
-      if (!planId) {
-        const engagement = engagementAnswers || {};
-        const yesCount = [engagement.hasLifestyleDirector, engagement.hasRegularEvents, engagement.hasNewsletterOrPortal].filter(Boolean).length;
-        if (yesCount >= 2) {
-          planId = plans.find((p: any) => p.sizeTier === "signature")?.id || null;
-        } else if (totalHomes <= 250) {
-          planId = plans.find((p: any) => p.sizeTier === "standard")?.id || null;
-        } else {
-          planId = plans.find((p: any) => p.sizeTier === "growth")?.id || null;
-        }
-      }
-      const selectedPlan = plans.find((p: any) => p.id === planId);
+      const selectedPlan = matchPlan(plans, totalHomes, engagementAnswers, selectedPlanId);
+      const planId = selectedPlan?.id || null;
 
       const org = await storage.createOrganization({
         name, slug, communityCode, totalHomes, contactName: contactName || null, contactEmail: contactEmail || null,
@@ -66,23 +66,10 @@ export function registerCommunityRoutes(app: Express): void {
       const existing = await storage.getOrganizationBySlug(slug);
       if (existing) return res.status(400).json({ error: "This community URL is already taken" });
 
-      const codePart = name.split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g, "").substring(0, 8);
-      const year = new Date().getFullYear().toString().slice(-2);
-      const communityCode = `${codePart}-${year}`;
-
-      // Engagement-based tier assignment
+      const communityCode = generateCommunityCode(name);
       const plans = await storage.getAllSubscriptionPlans();
-      const engagement = engagementAnswers || {};
-      const yesCount = [engagement.hasLifestyleDirector, engagement.hasRegularEvents, engagement.hasNewsletterOrPortal].filter(Boolean).length;
-      let planId: number | null = null;
-      if (yesCount >= 2) {
-        planId = plans.find((p: any) => p.sizeTier === "signature")?.id || null;
-      } else if (totalHomes <= 250) {
-        planId = plans.find((p: any) => p.sizeTier === "standard")?.id || null;
-      } else {
-        planId = plans.find((p: any) => p.sizeTier === "growth")?.id || null;
-      }
-      const selectedPlan = plans.find((p: any) => p.id === planId);
+      const selectedPlan = matchPlan(plans, totalHomes, engagementAnswers);
+      const planId = selectedPlan?.id || null;
 
       const org = await storage.createOrganization({
         name, slug, communityCode, totalHomes, contactName, contactEmail: contactEmail || null,
