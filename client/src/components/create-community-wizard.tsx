@@ -307,9 +307,11 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
               <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Soleil at Lakewood Ranch" />
             </div>
             <div>
-              <Label>URL Slug</Label>
-              <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
-              <p className="text-xs text-muted-foreground mt-1">pawtraitcommunities.com/{slug || "..."}</p>
+              <Label>Community URL</Label>
+              <div className="flex items-center border rounded-md overflow-hidden">
+                <span className="bg-muted px-3 py-2 text-sm text-muted-foreground whitespace-nowrap border-r">pawtraitcommunities.com/</span>
+                <input className="flex-1 px-3 py-2 text-sm bg-background outline-none" value={slug} onChange={(e) => setSlug(e.target.value)} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
