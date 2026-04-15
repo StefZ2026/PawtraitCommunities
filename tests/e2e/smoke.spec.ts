@@ -14,7 +14,7 @@ test.describe("Pawtrait Communities E2E", () => {
     await page.goto(BASE);
     await expect(page.getByRole("heading", { name: "Stunning AI Portraits" })).toBeVisible();
     await expect(page.getByRole("link", { name: "View All Styles" })).toBeVisible();
-    const img = page.locator("img[alt='Royal Monarch']");
+    const img = page.locator("img[alt='Renaissance Noble']");
     await expect(img).toBeVisible();
   });
 
@@ -55,7 +55,7 @@ test.describe("Pawtrait Communities E2E", () => {
     await expect(page.getByRole("heading", { name: "All Portrait Styles" })).toBeVisible();
     await expect(page.getByRole("tab", { name: /Dogs/ })).toBeVisible();
     await expect(page.getByRole("tab", { name: /Cats/ })).toBeVisible();
-    await expect(page.getByText("Royal Monarch").first()).toBeVisible();
+    await expect(page.getByText("Renaissance Noble").first()).toBeVisible();
   });
 
   test("styles page switches to cat styles", async ({ page }) => {

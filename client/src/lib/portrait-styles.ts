@@ -10,11 +10,11 @@ export interface StyleOption {
 export const portraitStyles: StyleOption[] = [
   {
     id: 1,
-    name: "Royal Monarch",
+    name: "Renaissance Noble",
     description: "A dignified portrait in the style of Italian Renaissance masters",
     category: "Classical",
     species: "dog",
-    promptTemplate: "A majestic Renaissance oil painting portrait of a white fluffy {breed} dog wearing ornate royal attire with a velvet collar, golden crown, and jeweled medallion, dramatic chiaroscuro lighting, rich earth tones, in the style of Leonardo da Vinci and Raphael, museum quality, highly detailed white fur texture"
+    promptTemplate: "A majestic Renaissance oil painting portrait of a white fluffy {breed} dog wearing ornate noble attire with a velvet collar and golden medallion, dramatic chiaroscuro lighting, rich earth tones, in the style of Leonardo da Vinci and Raphael, museum quality, highly detailed white fur texture"
   },
   {
     id: 25,
@@ -424,7 +424,7 @@ export function getStyleCategoriesBySpecies(species: "dog" | "cat"): string[] {
 }
 
 export const stylePreviewImages: Record<string, string> = {
-  "Royal Monarch": "/images/styles/renaissance-noble.jpg",
+  "Renaissance Noble": "/images/styles/renaissance-noble.jpg",
   "Baroque Aristocrat": "/images/styles/baroque-aristocrat.jpg",
   "Victorian Gentleman": "/images/styles/victorian-gentleman.jpg",
   "Royal Monarch": "/images/styles/royal-monarch.jpg",
