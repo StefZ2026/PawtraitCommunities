@@ -44,8 +44,20 @@ export function registerCommunityRoutes(app: Express): void {
         name, slug, communityCode, totalHomes, contactName: contactName || null, contactEmail: contactEmail || null,
         contactPhone: contactPhone || null, locationStreet: locationStreet || null, locationCity: locationCity || null,
         locationState: locationState || null, locationZip: locationZip || null, planId,
+        ownerId: req.user.claims.sub,
         subscriptionStatus: "pending", speciesHandled: "both", onboardingCompleted: true, isActive: true,
       } as any);
+
+      // Auto-register admin as community admin resident
+      const userEmail = req.user.claims.email || "";
+      try {
+        await storage.createResident({
+          supabaseAuthId: req.user.claims.sub, organizationId: org.id,
+          homeNumber: "MGR", displayName: contactName || "Community Manager",
+          email: userEmail, phone: null, role: "admin",
+          notificationPreference: "email",
+        } as any);
+      } catch {}
 
       res.status(201).json({
         id: org.id, name: org.name, slug: org.slug, communityCode, totalHomes,
@@ -99,8 +111,14 @@ export function registerCommunityRoutes(app: Express): void {
   app.get("/api/my-community-admin", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
-      // Check if user owns a community
-      const orgResult = await pool.query("SELECT * FROM organizations WHERE owner_id = $1 AND is_active = true LIMIT 1", [userId]);
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === process.env.ADMIN_EMAIL;
+
+      // Check if user owns a community, or if admin check all communities
+      let orgResult = await pool.query("SELECT * FROM organizations WHERE owner_id = $1 AND is_active = true ORDER BY created_at DESC LIMIT 1", [userId]);
+      if (orgResult.rows.length === 0 && isAdminUser) {
+        orgResult = await pool.query("SELECT * FROM organizations WHERE is_active = true ORDER BY created_at DESC LIMIT 1");
+      }
       if (orgResult.rows.length === 0) return res.status(404).json({ error: "No community found" });
       const org = orgResult.rows[0];
 
