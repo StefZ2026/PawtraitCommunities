@@ -175,6 +175,119 @@ export function registerCommunityRoutes(app: Express): void {
     }
   });
 
+  // Community: Resident list with pets and portraits
+  app.get("/api/community/:orgId/residents", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === ADMIN_EMAIL;
+      if (!isAdminUser) {
+        const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
+        if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
+      }
+      const residents = await pool.query(
+        `SELECT r.id, r.home_number, r.display_name, r.email, r.phone, r.role, r.created_at,
+         (SELECT COUNT(*) FROM dogs WHERE resident_id = r.id) as pet_count,
+         (SELECT COUNT(*) FROM portraits p JOIN dogs d ON p.dog_id = d.id WHERE d.resident_id = r.id) as portrait_count
+         FROM residents r WHERE r.organization_id = $1 AND r.is_active = true ORDER BY r.created_at DESC`,
+        [orgId]
+      );
+      res.json(residents.rows);
+    } catch (error: any) { res.status(500).json({ error: "Failed to load residents" }); }
+  });
+
+  // Community: Resident detail with pets and portraits
+  app.get("/api/community/:orgId/residents/:residentId", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const residentId = parseInt(req.params.residentId);
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === ADMIN_EMAIL;
+      if (!isAdminUser) {
+        const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
+        if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
+      }
+      const resident = await pool.query("SELECT * FROM residents WHERE id = $1 AND organization_id = $2", [residentId, orgId]);
+      if (resident.rows.length === 0) return res.status(404).json({ error: "Resident not found" });
+      const pets = await pool.query(
+        `SELECT d.*, (SELECT json_agg(json_build_object('id', p.id, 'styleId', p.style_id, 'generatedImageUrl', p.generated_image_url, 'likeCount', p.like_count, 'createdAt', p.created_at)) FROM portraits p WHERE p.dog_id = d.id) as portraits
+         FROM dogs d WHERE d.resident_id = $1 ORDER BY d.created_at DESC`, [residentId]
+      );
+      res.json({ resident: resident.rows[0], pets: pets.rows });
+    } catch (error: any) { res.status(500).json({ error: "Failed to load resident" }); }
+  });
+
+  // Community: Merch orders
+  app.get("/api/community/:orgId/orders", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === ADMIN_EMAIL;
+      if (!isAdminUser) {
+        const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
+        if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
+      }
+      const orders = await pool.query(
+        `SELECT mo.id, mo.customer_name, mo.total_cents, mo.status, mo.created_at,
+         r.display_name as resident_name, r.home_number,
+         json_agg(json_build_object('productKey', moi.product_key, 'quantity', moi.quantity, 'priceCents', moi.price_cents)) as items
+         FROM merch_orders mo LEFT JOIN residents r ON mo.resident_id = r.id LEFT JOIN merch_order_items moi ON mo.id = moi.order_id
+         WHERE mo.organization_id = $1 GROUP BY mo.id, r.display_name, r.home_number ORDER BY mo.created_at DESC`, [orgId]
+      );
+      res.json(orders.rows);
+    } catch (error: any) { res.status(500).json({ error: "Failed to load orders" }); }
+  });
+
+  // Community: Earnings summary
+  app.get("/api/community/:orgId/earnings", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === ADMIN_EMAIL;
+      if (!isAdminUser) {
+        const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
+        if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
+      }
+      const [earnings, org] = await Promise.all([
+        pool.query(`SELECT COALESCE(SUM(community_share_cents), 0) as total_earned, COALESCE(SUM(CASE WHEN payout_id IS NOT NULL THEN community_share_cents ELSE 0 END), 0) as total_paid FROM merch_earnings WHERE organization_id = $1`, [orgId]),
+        pool.query("SELECT stripe_connect_account_id, stripe_connect_onboarding_complete FROM organizations WHERE id = $1", [orgId]),
+      ]);
+      res.json({
+        totalEarnedCents: Number(earnings.rows[0]?.total_earned || 0),
+        totalPaidCents: Number(earnings.rows[0]?.total_paid || 0),
+        pendingCents: Number(earnings.rows[0]?.total_earned || 0) - Number(earnings.rows[0]?.total_paid || 0),
+        connectSetup: !!org.rows[0]?.stripe_connect_onboarding_complete,
+        connectAccountId: org.rows[0]?.stripe_connect_account_id || null,
+      });
+    } catch (error: any) { res.status(500).json({ error: "Failed to load earnings" }); }
+  });
+
+  // Community: Add resident manually
+  app.post("/api/community/:orgId/residents", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === ADMIN_EMAIL;
+      if (!isAdminUser) {
+        const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
+        if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
+      }
+      const { homeNumber, displayName, email, phone } = req.body;
+      if (!homeNumber) return res.status(400).json({ error: "Home number is required" });
+      const result = await pool.query(
+        `INSERT INTO residents (supabase_auth_id, organization_id, home_number, display_name, email, phone, role, notification_preference)
+         VALUES ($1, $2, $3, $4, $5, $6, 'resident', 'email') RETURNING *`,
+        [`placeholder-${Date.now()}`, orgId, homeNumber, displayName || null, email || '', phone || null]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error: any) { res.status(500).json({ error: "Failed to add resident" }); }
+  });
+
   // Admin: Edit community
   app.patch("/api/admin/communities/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
