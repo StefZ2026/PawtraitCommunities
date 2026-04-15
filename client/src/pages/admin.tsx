@@ -183,19 +183,6 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-1.5 font-serif font-bold text-xl text-primary">
-            <span className="flex items-center gap-0.5"><Dog className="h-5 w-5" /><CatFilled className="h-5 w-5" /></span>Pawtrait Communities
-          </Link>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="gap-1">Admin</Badge>
-            <Button variant="ghost" size="icon" onClick={() => logout()} disabled={isLoggingOut}><LogOut className="h-4 w-4" /></Button>
-          </div>
-        </div>
-      </header>
-
       <div className="container mx-auto px-4 py-8">
         {/* Stats Cards — Row 1 */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
