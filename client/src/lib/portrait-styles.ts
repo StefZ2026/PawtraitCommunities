@@ -146,11 +146,11 @@ export const portraitStyles: StyleOption[] = [
   },
   {
     id: 4,
-    name: "Pawsitively Spoiled",
-    description: "Charming portrait with a fun bandana message",
+    name: "Bandana Portrait",
+    description: "Charming portrait with a colorful bandana",
     category: "Showcase",
     species: "dog",
-    promptTemplate: "A charming portrait of a {breed} dog wearing a cute bandana that says 'Pawsitively Spoiled' in playful lettering, sitting proudly with happy eyes, soft studio lighting, clean simple background, pampered and loved expression, professional pet photo style, captures the dog's sweet spoiled personality"
+    promptTemplate: "A charming portrait of a {breed} dog wearing a bright colorful bandana, sitting attentively with happy eyes, soft studio lighting, clean simple background, friendly and approachable expression, professional pet photo style, captures the dog's sweet personality"
   },
   {
     id: 7,
@@ -428,7 +428,7 @@ export const stylePreviewImages: Record<string, string> = {
   "Baroque Aristocrat": "/images/styles/baroque-aristocrat.jpg",
   "Victorian Gentleman": "/images/styles/victorian-gentleman.jpg",
   "Royal Monarch": "/images/styles/royal-monarch.jpg",
-  "Pawsitively Spoiled": "/images/styles/bandana-portrait.jpg",
+  "Bandana Portrait": "/images/styles/bandana-portrait.jpg",
   "Art Nouveau Beauty": "/images/styles/art-nouveau.jpg",
   "Impressionist Garden": "/images/styles/impressionist-garden.jpg",
   "Steampunk Explorer": "/images/styles/steampunk-explorer.jpg",
