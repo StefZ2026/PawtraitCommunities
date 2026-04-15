@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import {
   Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
-  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle, X,
+  Home, LogOut, Pencil, Trash2, TrendingUp, DollarSign, AlertTriangle,
   Wallet, MessageSquare
 } from "lucide-react";
 import { CatFilled } from "@/components/cat-filled";
+import { CreateCommunityWizard } from "@/components/create-community-wizard";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,11 +35,6 @@ export default function Admin() {
   const token = session?.access_token;
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [adminName, setAdminName] = useState("");
-  const [adminSlug, setAdminSlug] = useState("");
-  const [adminHomes, setAdminHomes] = useState("");
-  const [adminContactName, setAdminContactName] = useState("");
-  const [adminContactEmail, setAdminContactEmail] = useState("");
 
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -300,46 +296,13 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        {/* Admin Create Form — simple, no sales pitch */}
+        {/* Create Community — same wizard as /get-started */}
         {showCreateForm && token && (
-          <Card className="mb-6 bg-background">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
-              <CardTitle className="text-base font-semibold">Add New Community</CardTitle>
-              <Button size="icon" variant="ghost" onClick={() => setShowCreateForm(false)}><X className="h-4 w-4" /></Button>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  const res = await fetch("/api/admin/communities", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({
-                      name: adminName, slug: adminSlug.toLowerCase().replace(/[^a-z0-9]/g, ""),
-                      totalHomes: parseInt(adminHomes), contactName: adminContactName || undefined, contactEmail: adminContactEmail || undefined,
-                    }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data.error || "Failed");
-                  toast({ title: "Community created!", description: `Code: ${data.communityCode}` });
-                  queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] });
-                  setShowCreateForm(false);
-                  setAdminName(""); setAdminSlug(""); setAdminHomes(""); setAdminContactName(""); setAdminContactEmail("");
-                } catch (err: any) { toast({ title: "Error", description: err.message, variant: "destructive" }); }
-              }} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Community Name *</Label><Input value={adminName} onChange={(e) => { setAdminName(e.target.value); setAdminSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "")); }} required /></div>
-                  <div><Label className="text-xs">URL Slug</Label><Input value={adminSlug} onChange={(e) => setAdminSlug(e.target.value)} required /></div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><Label className="text-xs">Total Homes *</Label><Input type="number" value={adminHomes} onChange={(e) => setAdminHomes(e.target.value)} min="1" required /></div>
-                  <div><Label className="text-xs">Contact Name</Label><Input value={adminContactName} onChange={(e) => setAdminContactName(e.target.value)} /></div>
-                  <div><Label className="text-xs">Contact Email</Label><Input type="email" value={adminContactEmail} onChange={(e) => setAdminContactEmail(e.target.value)} /></div>
-                </div>
-                <Button type="submit" className="w-full">Create Community</Button>
-              </form>
-            </CardContent>
-          </Card>
+          <CreateCommunityWizard
+            token={token}
+            onSuccess={() => { queryClient.invalidateQueries({ queryKey: ["/api/admin/communities"] }); setShowCreateForm(false); }}
+            onCancel={() => setShowCreateForm(false)}
+          />
         )}
 
         {/* Communities Table */}
