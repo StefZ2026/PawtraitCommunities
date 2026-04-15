@@ -19,6 +19,7 @@ import OrderMerch from "@/pages/order-merch";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import GetStarted from "@/pages/get-started";
+import PlanPage from "@/pages/plan-page";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/join" component={JoinCommunity} />
       <Route path="/dashboard" component={ResidentDashboard} />
       <Route path="/admin" component={Admin} />
+      <Route path="/get-started/plan" component={PlanPage} />
       <Route path="/get-started" component={GetStarted} />
       <Route path="/styles" component={Styles} />
       <Route path="/order/:portraitId" component={OrderMerch} />
