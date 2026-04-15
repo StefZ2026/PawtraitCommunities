@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
   Home, LogOut, Pencil, Trash2, TrendingUp, AlertTriangle,
-  Wallet, MessageSquare
+  Wallet, MessageSquare, ShoppingBag
 } from "lucide-react";
 import { CatFilled } from "@/components/cat-filled";
 import { CreateCommunityWizard } from "@/components/create-community-wizard";
@@ -184,6 +184,16 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-8">
+        {/* Admin Header with Place Order */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-serif font-bold">Admin Dashboard</h1>
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href="/admin/order">
+              <ShoppingBag className="h-4 w-4" />Place Order
+            </Link>
+          </Button>
+        </div>
+
         {/* Stats Cards — Row 1 */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="bg-background">

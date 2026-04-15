@@ -14,6 +14,7 @@ import JoinCommunity from "@/pages/join-community";
 import ResidentDashboard from "@/pages/resident-dashboard";
 import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
+import AdminOrder from "@/pages/admin-order";
 import Styles from "@/pages/styles";
 import OrderMerch from "@/pages/order-merch";
 import Privacy from "@/pages/privacy";
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/community/:orgId" component={CommunityDashboard} />
       <Route path="/community" component={CommunityDashboard} />
       <Route path="/dashboard" component={ResidentDashboard} />
+      <Route path="/admin/order" component={AdminOrder} />
       <Route path="/admin" component={Admin} />
       <Route path="/get-started/plan" component={PlanPage} />
       <Route path="/get-started" component={GetStarted} />

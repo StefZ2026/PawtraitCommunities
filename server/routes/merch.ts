@@ -2,6 +2,7 @@
 // Two-step flow: checkout (create order + Stripe session) → confirm (verify payment + submit to fulfillment)
 import type { Express, Request, Response } from "express";
 import { isAuthenticated } from "../auth";
+import { isAdmin } from "./helpers";
 import { pool } from "../db";
 import { storage } from "../storage";
 import { isPrintfulConfigured, createOrder as createPrintfulOrder } from "../printful";
@@ -226,5 +227,66 @@ export function registerMerchRoutes(app: Express): void {
   // Legacy endpoint — redirect to checkout flow
   app.post("/api/merch/order", isAuthenticated, async (req: any, res: Response) => {
     res.status(400).json({ error: "Use /api/merch/checkout instead. Payment is required before fulfillment." });
+  });
+
+  // Admin direct order — bypasses Stripe, goes straight to Printful (no sales tax)
+  app.post("/api/admin/merch/order", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const { portraitId, orgId, items, shipping } = req.body;
+      if (!portraitId || !orgId || !items?.length || !shipping?.name || !shipping?.street || !shipping?.city || !shipping?.state || !shipping?.zip) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const portrait = await storage.getPortrait(portraitId);
+      if (!portrait?.generatedImageUrl) return res.status(400).json({ error: "No portrait found" });
+
+      let totalWholesaleCents = 0;
+      const printfulItems: any[] = [];
+
+      for (const item of items) {
+        const product = getProduct(item.productKey);
+        if (!product) return res.status(400).json({ error: `Unknown product: ${item.productKey}` });
+        const variant = item.variantId ? product.variants.find(v => v.id === item.variantId) : product.variants[0];
+        if (!variant) return res.status(400).json({ error: `Unknown variant` });
+        const qty = item.quantity || 1;
+        totalWholesaleCents += variant.wholesaleCostCents * qty;
+        printfulItems.push({ variant_id: variant.id, quantity: qty, files: [{ type: "default", url: portrait.generatedImageUrl }] });
+      }
+
+      // Create order record
+      const orderResult = await pool.query(
+        `INSERT INTO merch_orders (organization_id, portrait_id, customer_name, shipping_street, shipping_city, shipping_state, shipping_zip, shipping_country, fulfillment_provider, total_cents, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'printful', $9, 'admin_direct') RETURNING id`,
+        [orgId, portraitId, shipping.name, shipping.street, shipping.city, shipping.state, shipping.zip, shipping.country || "US", totalWholesaleCents]
+      );
+      const orderId = orderResult.rows[0].id;
+
+      for (const item of items) {
+        const product = getProduct(item.productKey)!;
+        const variant = item.variantId ? product.variants.find(v => v.id === item.variantId) : product.variants[0];
+        await pool.query(
+          `INSERT INTO merch_order_items (order_id, product_key, variant_id, quantity, price_cents, wholesale_cost_cents, artwork_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [orderId, item.productKey, variant!.id, item.quantity || 1, variant!.wholesaleCostCents, variant!.wholesaleCostCents, portrait.generatedImageUrl]
+        );
+      }
+
+      // Submit to Printful
+      if (isPrintfulConfigured()) {
+        const printfulOrder = await createPrintfulOrder(
+          { name: shipping.name, address1: shipping.street, city: shipping.city, state_code: shipping.state, zip: shipping.zip, country_code: shipping.country || "US" },
+          printfulItems, true // draft first
+        );
+        await pool.query("UPDATE merch_orders SET external_order_id = $1, status = 'submitted' WHERE id = $2", [String(printfulOrder.id), orderId]);
+
+        console.log(`[admin-order] Order ${orderId} → Printful ${printfulOrder.id} | $${(totalWholesaleCents / 100).toFixed(2)} wholesale`);
+        res.status(201).json({ orderId, printfulOrderId: printfulOrder.id, status: "submitted", totalWholesaleCents });
+      } else {
+        res.status(201).json({ orderId, status: "pending_fulfillment", totalWholesaleCents });
+      }
+    } catch (err: any) {
+      console.error("[admin-order] Error:", err.message);
+      res.status(500).json({ error: "Failed to create order" });
+    }
   });
 }
