@@ -99,35 +99,30 @@ export default function PlanPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-muted/10">
-      <div className="max-w-6xl mx-auto px-8 py-10">
+      <div className="max-w-6xl mx-auto px-8 py-6">
 
-        {/* Hero */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <Dog className="h-7 w-7 text-primary" />
-            <CatFilled className="h-7 w-7 text-primary" />
+        {/* Hero — compact */}
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Dog className="h-6 w-6 text-primary" />
+            <CatFilled className="h-6 w-6 text-primary" />
           </div>
-          <p className="text-primary font-semibold tracking-wide uppercase text-xs mb-2">Pawtrait Communities</p>
-          <h1 className="font-serif font-bold text-4xl md:text-5xl mb-2">
+          <h1 className="font-serif font-bold text-4xl md:text-5xl mb-1">
             <span className="text-primary">{plan.name}</span> Plan
           </h1>
-          <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-4" />
-          <h2 className="font-serif text-xl md:text-2xl leading-tight mb-3 text-foreground/90">
-            Turn Your Residents' Pets Into a Shared Community Experience
-          </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Delight residents with personalized pet portraits, custom keepsakes, and a vibrant community gallery — all with zero operational work for your team.
+            Turn your residents' pets into a shared community experience — personalized portraits, custom keepsakes, and a vibrant gallery with zero operational work.
           </p>
         </div>
 
         {/* What's Included */}
-        <Card className="mb-6 border-0 shadow-lg">
-          <CardContent className="p-6">
-            <h2 className="font-serif font-bold text-xl mb-4 flex items-center gap-2">
+        <Card className="mb-4 border-0 shadow-lg">
+          <CardContent className="p-5">
+            <h2 className="font-serif font-bold text-lg mb-3 flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-primary/10"><Sparkles className="h-4 w-4 text-primary" /></div>
               What's Included
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[
                 { icon: Image, color: "bg-purple-100 text-purple-600", title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents browse, favorite, and enjoy portraits together" },
                 { icon: Sparkles, color: "bg-amber-100 text-amber-600", title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
@@ -137,37 +132,38 @@ export default function PlanPage() {
                 { icon: Users, color: "bg-cyan-100 text-cyan-600", title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
                 { icon: HandHeart, color: "bg-orange-100 text-orange-600", title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs" },
               ].map((feature, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-border/50 hover:border-primary/20 hover:bg-primary/[0.02] transition-colors">
-                  <div className={`p-2.5 rounded-xl ${feature.color} shrink-0`}>
-                    <feature.icon className="h-5 w-5" />
+                <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border/50 hover:border-primary/20 transition-colors">
+                  <div className={`p-2 rounded-lg ${feature.color} shrink-0`}>
+                    <feature.icon className="h-4 w-4" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-bold">{feature.title}</p>
-                    <p className="text-muted-foreground text-sm">{feature.desc}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm">{feature.title}</p>
+                    <p className="text-muted-foreground text-xs">{feature.desc}</p>
                   </div>
-                  <Check className="h-5 w-5 text-green-500 shrink-0" />
+                  <Check className="h-4 w-4 text-green-500 shrink-0" />
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Pricing */}
-        <Card className="mb-6 border-2 border-primary shadow-lg">
-          <CardContent className="p-6">
-            <h2 className="font-serif font-bold text-2xl mb-6 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10"><DollarSign className="h-5 w-5 text-primary" /></div>
+        {/* Pricing + Trial side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <Card className="border-2 border-primary shadow-lg">
+          <CardContent className="p-5">
+            <h2 className="font-serif font-bold text-lg mb-3 flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10"><DollarSign className="h-4 w-4 text-primary" /></div>
               Simple, Transparent Pricing
             </h2>
-            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
+            <div className="flex items-center gap-4">
               <div>
-                <span className="text-4xl font-bold text-primary">${(plan.priceMonthlyCents / 100).toFixed(0)}</span>
-                <span className="text-xl text-muted-foreground">/month</span>
+                <span className="text-3xl font-bold text-primary">${(plan.priceMonthlyCents / 100).toFixed(0)}</span>
+                <span className="text-muted-foreground">/month</span>
               </div>
-              <span className="text-2xl text-muted-foreground font-light">or</span>
+              <span className="text-muted-foreground">or</span>
               <div>
-                <span className="text-4xl font-bold text-primary">${(plan.priceAnnualCents / 100).toLocaleString()}</span>
-                <span className="text-xl text-muted-foreground">/year</span>
+                <span className="text-3xl font-bold text-primary">${(plan.priceAnnualCents / 100).toLocaleString()}</span>
+                <span className="text-muted-foreground">/year</span>
                 {annualSavings > 0 && (
                   <span className="ml-3 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
                     Save ${annualSavings.toFixed(0)}
@@ -179,62 +175,61 @@ export default function PlanPage() {
         </Card>
 
         {/* Try It Risk-Free */}
-        <Card className="mb-6 border-0 shadow-lg bg-blue-50">
-          <CardContent className="p-6">
-            <h2 className="font-serif font-bold text-2xl mb-4 flex items-center gap-3 text-blue-900">
-              <div className="p-2 rounded-lg bg-blue-100"><Gift className="h-5 w-5 text-blue-600" /></div>
+        <Card className="border-0 shadow-lg bg-blue-50">
+          <CardContent className="p-5">
+            <h2 className="font-serif font-bold text-lg mb-2 flex items-center gap-2 text-blue-900">
+              <div className="p-1.5 rounded-lg bg-blue-100"><Gift className="h-4 w-4 text-blue-600" /></div>
               Try It Risk-Free
             </h2>
-            <p className="text-xl font-semibold text-blue-800">Start your 14-day free trial — no credit card required</p>
-            <p className="text-blue-600 text-lg mt-2">Full access. Cancel anytime.</p>
+            <p className="font-semibold text-blue-800">Start your 14-day free trial — no credit card required</p>
+            <p className="text-blue-600 text-sm mt-1">Full access. Cancel anytime.</p>
           </CardContent>
         </Card>
+        </div>
 
-        {/* Closing Pitch */}
-        <div className="text-center mb-8 py-4">
-          <Heart className="h-8 w-8 text-primary mx-auto mb-4" />
-          <h2 className="font-serif font-bold text-2xl mb-4">A Simple Way to Delight Your Residents</h2>
-          <p className="text-xl text-muted-foreground italic leading-relaxed max-w-lg mx-auto">
-            Your residents already love their pets.<br />
-            Pawtrait gives them a meaningful, fun way to celebrate them — together.
+        {/* Closing + Buttons */}
+        <div className="text-center mb-4 py-3">
+          <Heart className="h-6 w-6 text-primary mx-auto mb-2" />
+          <p className="text-muted-foreground italic max-w-lg mx-auto">
+            Your residents already love their pets. Pawtrait gives them a meaningful, fun way to celebrate them — together.
           </p>
         </div>
 
         {/* Activation Buttons */}
-        <div className="space-y-3 mb-6">
+        <div className="space-y-2 mb-4">
           <Button
-            className="w-full gap-3 h-16 text-xl font-semibold shadow-lg"
+            className="w-full gap-2 h-12 text-lg font-semibold shadow-lg"
             disabled={loading}
             onClick={() => createAndActivate("trial")}
           >
-            {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Gift className="h-6 w-6" />}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Gift className="h-5 w-5" />}
             Start Your Free 14-Day Trial
           </Button>
 
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             <Button
-              className="flex-1 gap-2 h-14 text-lg"
+              className="flex-1 gap-2 h-10"
               variant="outline"
               disabled={loading}
               onClick={() => createAndActivate("monthly")}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
               Monthly — ${(plan.priceMonthlyCents / 100).toFixed(0)}/mo
             </Button>
             <Button
-              className="flex-1 gap-2 h-14 text-lg"
+              className="flex-1 gap-2 h-10"
               variant="outline"
               disabled={loading}
               onClick={() => createAndActivate("annual")}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
               Annual — ${(plan.priceAnnualCents / 100).toLocaleString()}/yr
             </Button>
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center pb-8">
+        <div className="flex justify-between items-center pb-4">
           <Button variant="outline" onClick={goBack} disabled={loading} className="gap-2 h-11">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
