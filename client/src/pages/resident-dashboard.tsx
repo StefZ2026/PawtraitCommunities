@@ -143,23 +143,20 @@ export default function ResidentDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="border-b bg-muted/30">
+        <div className="container mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Dog className="h-6 w-6 text-primary" />
+            <Dog className="h-5 w-5 text-primary" />
             <div>
-              <h1 className="font-serif font-bold">{community.communityName}</h1>
-              <p className="text-xs text-muted-foreground">Home #{community.homeNumber}</p>
+              <span className="font-serif font-bold text-sm">{community.communityName}</span>
+              <span className="text-xs text-muted-foreground ml-2">Home #{community.homeNumber}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/${community.communitySlug}`}><Heart className="h-4 w-4 mr-1" />Gallery</Link>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => logout()} disabled={isLoggingOut}><LogOut className="h-4 w-4" /></Button>
-          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/${community.communitySlug}`}><Heart className="h-4 w-4 mr-1" />Gallery</Link>
+          </Button>
         </div>
-      </header>
+      </div>
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold">My Pets</h2>

@@ -156,13 +156,11 @@ export default function OrderMerch() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild><Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link></Button>
-          <h1 className="font-serif font-bold text-lg">Order a Keepsake</h1>
-        </div>
-      </header>
       <div className="container mx-auto px-4 py-8 max-w-lg">
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="icon" asChild><Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link></Button>
+          <h1 className="font-serif font-bold text-xl">Custom Pet Keepsakes</h1>
+        </div>
         <form onSubmit={(e) => { e.preventDefault(); checkoutMutation.mutate(); }} className="space-y-6">
           {/* Product selection */}
           <div>

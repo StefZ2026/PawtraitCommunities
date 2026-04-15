@@ -53,15 +53,15 @@ export default function Gallery() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center gap-3">
+      <div className="border-b bg-muted/30">
+        <div className="container mx-auto px-4 h-12 flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild><Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link></Button>
           <div>
-            <h1 className="font-serif font-bold">{gallery?.communityName || "Community"} Gallery</h1>
-            <p className="text-xs text-muted-foreground">{gallery?.portraits?.length || 0} portraits</p>
+            <span className="font-serif font-bold text-sm">{gallery?.communityName || "Community"} Gallery</span>
+            <span className="text-xs text-muted-foreground ml-2">{gallery?.portraits?.length || 0} portraits</span>
           </div>
         </div>
-      </header>
+      </div>
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-center mb-6">
           <Tabs value={sort} onValueChange={(v) => setSort(v as "likes" | "newest")}>

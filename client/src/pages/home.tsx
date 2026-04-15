@@ -3,9 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import {
   Heart, Sparkles, Dog, Camera, Users, Image,
-  ShoppingBag, Palette, ArrowRight, LayoutDashboard, LogOut
+  ShoppingBag, Palette, ArrowRight, LayoutDashboard
 } from "lucide-react";
-import { CatFilled } from "@/components/cat-filled";
 import { useAuth } from "@/hooks/use-auth";
 
 const STYLE_PREVIEWS = [
@@ -20,48 +19,12 @@ const STYLE_PREVIEWS = [
 ];
 
 export default function Home() {
-  const { isAuthenticated, isLoading, logout, isLoggingOut } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-1.5 font-serif text-2xl font-bold text-primary">
-            <span className="flex items-center gap-0.5"><Dog className="h-6 w-6" /><CatFilled className="h-6 w-6" /></span>
-            Pawtrait Communities
-          </Link>
-          <nav className="flex items-center gap-2">
-            {isLoading ? (
-              <div className="w-24 h-9 bg-muted animate-pulse rounded-md" />
-            ) : isAuthenticated ? (
-              <>
-                <Button variant="ghost" className="gap-2" asChild>
-                  <Link href="/dashboard">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => logout()} disabled={isLoggingOut}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" asChild>
-                  <Link href="/login">Log In</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/login">Get Started</Link>
-                </Button>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
       {/* Hero */}
-      <section className="relative pt-32 pb-8 overflow-hidden">
+      <section className="relative pt-16 pb-8 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10" />
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center">
@@ -70,14 +33,13 @@ export default function Home() {
               <span className="text-sm font-medium">AI-Powered Pet Portraits for Your Community</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-serif font-bold mb-6 leading-tight">
-              Your Pet. Your Style.{" "}
-              <span className="text-primary">Your Community.</span>
+              Turn Your Residents' Pets Into a{" "}
+              <span className="text-primary">Shared Community Experience</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Upload a photo of your pet, choose from 40+ stunning AI styles, and watch the magic happen.
-              Vote for your favorites in the community gallery and order beautiful keepsakes.
+              Delight residents with personalized pet portraits, custom keepsakes, and a vibrant community gallery — all with zero operational work for your team.
             </p>
-            {isAuthenticated ? (
+            {!isLoading && isAuthenticated ? (
               <Button size="lg" className="gap-2" asChild>
                 <Link href="/dashboard">
                   <LayoutDashboard className="h-5 w-5" />
@@ -87,8 +49,13 @@ export default function Home() {
             ) : (
               <div className="flex gap-4 justify-center">
                 <Button size="lg" className="gap-2" asChild>
-                  <Link href="/join">
+                  <Link href="/get-started">
                     <Sparkles className="h-5 w-5" />
+                    Get Started Free
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="gap-2" asChild>
+                  <Link href="/join">
                     Join Your Community
                   </Link>
                 </Button>
@@ -102,18 +69,18 @@ export default function Home() {
       <section className="pt-8 pb-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-serif font-bold mb-4">Stunning AI Portraits</h2>
+            <h2 className="text-3xl font-serif font-bold mb-4">Beautiful, Stylized Pet Portraits</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              From Renaissance masterpieces to holiday favorites — 40+ styles your neighbors will love
+              50+ stunning styles residents will love to display, share, and gift — from Renaissance masterpieces to holiday favorites.
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
             {STYLE_PREVIEWS.map((item) => (
-              <div key={item.name} className="aspect-square rounded-lg overflow-hidden relative group protected-image-wrapper">
+              <div key={item.name} className="aspect-square rounded-lg overflow-hidden relative group">
                 <img
                   src={item.src}
                   alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 protected-image"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   draggable={false}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -139,19 +106,19 @@ export default function Home() {
       <section className="py-20 bg-card/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-serif font-bold mb-4">How It Works</h2>
+            <h2 className="text-3xl font-serif font-bold mb-4">Effortless for Everyone</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Four simple steps — under a minute from photo to portrait.
+              Simple access codes let residents join in minutes. No apps to download, no training required.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {[
-              { icon: Users, title: "Join", description: "Enter your community code and create a free account." },
-              { icon: Camera, title: "Upload", description: "Add your pet's photo — any breed, any pose." },
-              { icon: Sparkles, title: "Generate", description: "Pick a style and watch AI create a masterpiece." },
-              { icon: Heart, title: "Vote & Share", description: "Browse the gallery, vote for favorites, share on social." },
+              { icon: Users, title: "Join", description: "Residents enter a community code and create a free account." },
+              { icon: Camera, title: "Upload", description: "Add a pet photo — any breed, any pose, dogs and cats." },
+              { icon: Sparkles, title: "Generate", description: "Pick a style and watch AI create something beautiful." },
+              { icon: Heart, title: "Engage", description: "Browse the gallery, vote for favorites, order keepsakes." },
             ].map((step, index) => (
-              <Card key={index} className="text-center hover-elevate">
+              <Card key={index} className="text-center">
                 <CardContent className="pt-8 pb-6">
                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                     <step.icon className="h-7 w-7 text-primary" />
@@ -166,23 +133,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Keepsakes / Merch */}
+      {/* Custom Pet Keepsakes */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-serif font-bold mb-4">Order Beautiful Keepsakes</h2>
+            <h2 className="text-3xl font-serif font-bold mb-4">Custom Pet Keepsakes</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Turn your pet's AI portrait into something you can hold.
-              Framed prints for the wall, mugs for your morning coffee, and more.
+              Transform portraits into calendars, framed artwork, and gift-ready products. A portion of every purchase supports your community programs.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-4">
             {[
-              { name: "Mugs", desc: "11oz & 15oz ceramic" },
-              { name: "Tote Bags", desc: "Natural canvas" },
+              { name: "Framed Prints", desc: "Gallery-quality artwork" },
+              { name: "Ceramic Mugs", desc: "11oz & 15oz" },
+              { name: "Canvas Totes", desc: "Natural cotton" },
               { name: "iPhone Cases", desc: "All models" },
-              { name: "Greeting Cards", desc: "Holidays & occasions" },
-              { name: "Calendars", desc: "12-month custom" },
+              { name: "Greeting Cards", desc: "Every occasion" },
+              { name: "Custom Calendars", desc: "12-month personalized" },
             ].map((item) => (
               <div key={item.name} className="flex items-center gap-3 bg-card border rounded-lg px-5 py-3">
                 <ShoppingBag className="h-5 w-5 text-primary shrink-0" />
@@ -196,13 +163,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Community Gallery Preview */}
+      {/* Community Gallery + Pet Wall */}
       <section className="py-20 bg-card/50">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-serif font-bold mb-4">Your Community Gallery</h2>
+          <h2 className="text-3xl font-serif font-bold mb-4">A Gallery That Brings Residents Together</h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-            Every portrait joins your community gallery. Vote for your favorites —
-            the most-loved portraits get featured on the quarterly Pet Wall!
+            Every portrait joins your community's private gallery. Residents vote for their favorites, sparking friendly competition. Each quarter, the 20 most-loved pets are featured on the community Pet Wall.
           </p>
           <div className="flex justify-center gap-8 mb-8">
             <div className="text-center">
@@ -212,7 +178,7 @@ export default function Home() {
             </div>
             <div className="text-center">
               <Palette className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="font-semibold">40+ Styles</p>
+              <p className="font-semibold">50+ Styles</p>
               <p className="text-xs text-muted-foreground">New styles added regularly</p>
             </div>
             <div className="text-center">
@@ -227,12 +193,14 @@ export default function Home() {
       {/* CTA */}
       <section className="py-20 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-serif font-bold mb-4">Ready to See Your Pet as a Masterpiece?</h2>
-          <p className="text-primary-foreground/80 mb-8 max-w-xl mx-auto">
-            Ask your community manager for your community code and join today.
-            It's free for residents — your community subscription covers everything.
+          <h2 className="text-3xl font-serif font-bold mb-4">A Simple Way to Delight Your Residents</h2>
+          <p className="text-primary-foreground/80 mb-4 max-w-xl mx-auto text-lg">
+            Your residents already love their pets. Pawtrait gives them a meaningful, fun way to celebrate them — together.
           </p>
-          {isAuthenticated ? (
+          <p className="text-primary-foreground/60 mb-8 text-sm">
+            Start your 14-day free trial — no credit card required.
+          </p>
+          {!isLoading && isAuthenticated ? (
             <Button size="lg" variant="secondary" className="gap-2" asChild>
               <Link href="/dashboard">
                 <LayoutDashboard className="h-5 w-5" />
@@ -240,12 +208,19 @@ export default function Home() {
               </Link>
             </Button>
           ) : (
-            <Button size="lg" variant="secondary" className="gap-2" asChild>
-              <Link href="/join">
-                <Sparkles className="h-5 w-5" />
-                Join Your Community
-              </Link>
-            </Button>
+            <div className="flex gap-4 justify-center">
+              <Button size="lg" variant="secondary" className="gap-2" asChild>
+                <Link href="/get-started">
+                  <Sparkles className="h-5 w-5" />
+                  Get Started Free
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="gap-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10" asChild>
+                <Link href="/join">
+                  Join Your Community
+                </Link>
+              </Button>
+            </div>
           )}
         </div>
       </section>

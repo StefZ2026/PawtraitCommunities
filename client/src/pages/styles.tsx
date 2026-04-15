@@ -14,13 +14,8 @@ export default function Styles() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild><Link href="/"><ArrowLeft className="h-5 w-5" /></Link></Button>
-          <h1 className="font-serif font-bold text-lg">All Portrait Styles</h1>
-        </div>
-      </header>
       <div className="container mx-auto px-4 py-6">
+        <h1 className="font-serif font-bold text-2xl mb-6">All Portrait Styles</h1>
         <div className="flex justify-center mb-6">
           <Tabs value={species} onValueChange={(v) => { setSpecies(v as "dog" | "cat"); setSelectedCategory(null); }}>
             <TabsList>
