@@ -23,6 +23,7 @@ export default function ResidentDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [addPetOpen, setAddPetOpen] = useState(false);
+  const [addPetStep, setAddPetStep] = useState<"species" | "name" | "breed" | "photo">("species");
   const [petName, setPetName] = useState("");
   const [petSpecies, setPetSpecies] = useState("dog");
   const [petBreed, setPetBreed] = useState("");
@@ -328,43 +329,85 @@ export default function ResidentDashboard() {
         )}
       </div>
 
-      {/* Add Pet Dialog */}
-      <Dialog open={addPetOpen} onOpenChange={setAddPetOpen}>
+      {/* Add Pet — Guided Mini Wizard */}
+      <Dialog open={addPetOpen} onOpenChange={(open) => { setAddPetOpen(open); if (!open) { setPetName(""); setPetSpecies("dog"); setPetBreed(""); setPetPhoto(null); setAddPetStep("species"); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add a Pet</DialogTitle></DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); addPet(); }} className="space-y-4">
-            <div><Label>Name</Label><Input value={petName} onChange={(e) => setPetName(e.target.value)} placeholder="e.g. Bella" required /></div>
-            <div>
-              <Label>Dog or Cat?</Label>
-              <div className="flex gap-2 mt-1">
-                <Button type="button" size="lg" variant={petSpecies === "dog" ? "default" : "outline"} className="flex-1 gap-2 text-base" onClick={() => setPetSpecies("dog")}><Dog className="h-5 w-5" />Dog</Button>
-                <Button type="button" size="lg" variant={petSpecies === "cat" ? "default" : "outline"} className="flex-1 gap-2 text-base" onClick={() => setPetSpecies("cat")}><Cat className="h-5 w-5" />Cat</Button>
-              </div>
-            </div>
-            <div><Label>Breed (optional)</Label><Input value={petBreed} onChange={(e) => setPetBreed(e.target.value)} placeholder="e.g. Golden Retriever" /></div>
-            <div>
-              <Label>Photo</Label>
-              <input type="file" ref={addPhotoRef} accept="image/*" onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = () => setPetPhoto(reader.result as string);
-                reader.readAsDataURL(file);
-              }} className="hidden" />
-              {petPhoto ? (
-                <div className="relative">
-                  <img src={petPhoto} alt="Pet" className="w-full h-48 object-cover rounded-lg" />
-                  <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => { setPetPhoto(null); if (addPhotoRef.current) addPhotoRef.current.value = ""; }}>Change</Button>
+          {addPetStep === "species" && (
+            <>
+              <DialogHeader><DialogTitle>Is your new pet a dog or a cat?</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <Button size="lg" variant={petSpecies === "dog" ? "default" : "outline"} className="flex-1 gap-2 text-lg h-14" onClick={() => { setPetSpecies("dog"); setAddPetStep("name"); }}><Dog className="h-6 w-6" />Dog</Button>
+                  <Button size="lg" variant={petSpecies === "cat" ? "default" : "outline"} className="flex-1 gap-2 text-lg h-14" onClick={() => { setPetSpecies("cat"); setAddPetStep("name"); }}><Cat className="h-6 w-6" />Cat</Button>
                 </div>
-              ) : (
-                <Button type="button" variant="outline" className="w-full h-24 flex flex-col gap-1" onClick={() => addPhotoRef.current?.click()}>
-                  <Upload className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Upload photo (can add later)</span>
-                </Button>
-              )}
-            </div>
-            <Button type="submit" size="lg" className="w-full text-base">Add Pet</Button>
-          </form>
+              </div>
+            </>
+          )}
+          {addPetStep === "name" && (
+            <>
+              <DialogHeader><DialogTitle>What's your {petSpecies}'s name?</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <Input value={petName} onChange={(e) => setPetName(e.target.value)} placeholder={petSpecies === "cat" ? "e.g. Whiskers" : "e.g. Buddy"} autoFocus className="text-lg h-12" />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setAddPetStep("species")}>Back</Button>
+                  <Button size="lg" className="flex-1 text-base" disabled={!petName.trim()} onClick={() => setAddPetStep("breed")}>Next</Button>
+                </div>
+              </div>
+            </>
+          )}
+          {addPetStep === "breed" && (
+            <>
+              <DialogHeader><DialogTitle>What breed is {petName}?</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <Input value={petBreed} onChange={(e) => setPetBreed(e.target.value)} placeholder={petSpecies === "cat" ? "e.g. Siamese (optional)" : "e.g. Golden Retriever (optional)"} autoFocus className="text-lg h-12" />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setAddPetStep("name")}>Back</Button>
+                  <Button size="lg" className="flex-1 text-base" onClick={() => setAddPetStep("photo")}>Next</Button>
+                </div>
+              </div>
+            </>
+          )}
+          {addPetStep === "photo" && (
+            <>
+              <DialogHeader><DialogTitle>Upload a photo of {petName}</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <input type="file" ref={addPhotoRef} accept="image/*" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => setPetPhoto(reader.result as string);
+                  reader.readAsDataURL(file);
+                }} className="hidden" />
+                {petPhoto ? (
+                  <div className="relative">
+                    <img src={petPhoto} alt={petName} className="w-full h-48 object-cover rounded-lg" />
+                    <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => { setPetPhoto(null); if (addPhotoRef.current) addPhotoRef.current.value = ""; }}>Change</Button>
+                  </div>
+                ) : (
+                  <div>
+                    <Button type="button" variant="outline" className="w-full h-28 flex flex-col gap-2" onClick={() => addPhotoRef.current?.click()}>
+                      <Camera className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-base text-muted-foreground">Tap to upload a photo</span>
+                    </Button>
+                    <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground font-medium mb-1">Tips for the best portrait:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Choose a well-lit photo</li>
+                        <li>Just one pet in the picture</li>
+                        <li>Facing forward works best</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setAddPetStep("breed")}>Back</Button>
+                  <Button size="lg" className="flex-1 text-base gap-2" onClick={addPet}>
+                    <Sparkles className="h-5 w-5" />{petPhoto ? `Add ${petName}` : `Add ${petName} (photo later)`}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

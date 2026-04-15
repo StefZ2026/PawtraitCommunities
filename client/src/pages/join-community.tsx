@@ -309,23 +309,23 @@ export default function JoinCommunity() {
           {step === "petDetail" && currentPet && (
             <div className="space-y-4">
               <div>
-                <Label>What's their name?</Label>
-                <Input value={currentPet.name} onChange={(e) => updateCurrentPet("name", e.target.value)} placeholder="e.g. Buddy" autoFocus />
-              </div>
-              <div>
                 <Label>Dog or cat?</Label>
-                <div className="flex gap-2 mt-1">
-                  <Button type="button" variant={currentPet.species === "dog" ? "default" : "outline"} className="flex-1 gap-2" onClick={() => updateCurrentPet("species", "dog")}>
-                    <Dog className="h-4 w-4" />Dog
+                <div className="flex gap-3 mt-1">
+                  <Button type="button" size="lg" variant={currentPet.species === "dog" ? "default" : "outline"} className="flex-1 gap-2 text-lg h-14" onClick={() => updateCurrentPet("species", "dog")}>
+                    <Dog className="h-6 w-6" />Dog
                   </Button>
-                  <Button type="button" variant={currentPet.species === "cat" ? "default" : "outline"} className="flex-1 gap-2" onClick={() => updateCurrentPet("species", "cat")}>
-                    <Cat className="h-4 w-4" />Cat
+                  <Button type="button" size="lg" variant={currentPet.species === "cat" ? "default" : "outline"} className="flex-1 gap-2 text-lg h-14" onClick={() => updateCurrentPet("species", "cat")}>
+                    <Cat className="h-6 w-6" />Cat
                   </Button>
                 </div>
               </div>
               <div>
-                <Label>Breed (optional)</Label>
-                <Input value={currentPet.breed} onChange={(e) => updateCurrentPet("breed", e.target.value)} placeholder="e.g. Golden Retriever" />
+                <Label>What's your {currentPet.species}'s name?</Label>
+                <Input value={currentPet.name} onChange={(e) => updateCurrentPet("name", e.target.value)} placeholder={currentPet.species === "cat" ? "e.g. Whiskers" : "e.g. Buddy"} className="text-lg h-12" />
+              </div>
+              <div>
+                <Label>What breed is {currentPet.name || `your ${currentPet.species}`}? (optional)</Label>
+                <Input value={currentPet.breed} onChange={(e) => updateCurrentPet("breed", e.target.value)} placeholder={currentPet.species === "cat" ? "e.g. Siamese" : "e.g. Golden Retriever"} className="text-lg h-12" />
               </div>
               <div>
                 <Label>Photo</Label>
