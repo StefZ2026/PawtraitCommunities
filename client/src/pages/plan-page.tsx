@@ -99,51 +99,51 @@ export default function PlanPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-muted/10">
-      <div className="max-w-3xl mx-auto px-6 py-16">
+      <div className="max-w-6xl mx-auto px-8 py-10">
 
         {/* Hero */}
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <Dog className="h-8 w-8 text-primary" />
-            <CatFilled className="h-8 w-8 text-primary" />
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Dog className="h-7 w-7 text-primary" />
+            <CatFilled className="h-7 w-7 text-primary" />
           </div>
-          <p className="text-primary font-semibold tracking-wide uppercase text-sm mb-4">Pawtrait Communities</p>
-          <h1 className="font-serif font-bold text-5xl md:text-6xl mb-4">
+          <p className="text-primary font-semibold tracking-wide uppercase text-xs mb-2">Pawtrait Communities</p>
+          <h1 className="font-serif font-bold text-4xl md:text-5xl mb-2">
             <span className="text-primary">{plan.name}</span> Plan
           </h1>
-          <div className="w-24 h-1 bg-primary mx-auto rounded-full mb-8" />
-          <h2 className="font-serif text-2xl md:text-3xl leading-tight mb-6 text-foreground/90">
-            Turn Your Residents' Pets Into a<br />Shared Community Experience
+          <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-4" />
+          <h2 className="font-serif text-xl md:text-2xl leading-tight mb-3 text-foreground/90">
+            Turn Your Residents' Pets Into a Shared Community Experience
           </h2>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+          <p className="text-muted-foreground max-w-2xl mx-auto">
             Delight residents with personalized pet portraits, custom keepsakes, and a vibrant community gallery — all with zero operational work for your team.
           </p>
         </div>
 
         {/* What's Included */}
-        <Card className="mb-10 border-0 shadow-lg">
-          <CardContent className="p-8">
-            <h2 className="font-serif font-bold text-2xl mb-8 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10"><Sparkles className="h-5 w-5 text-primary" /></div>
+        <Card className="mb-6 border-0 shadow-lg">
+          <CardContent className="p-6">
+            <h2 className="font-serif font-bold text-xl mb-4 flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10"><Sparkles className="h-4 w-4 text-primary" /></div>
               What's Included
             </h2>
-            <div className="space-y-6">
+            <div className="space-y-3">
               {[
-                { title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents can browse pet portraits, favorite the ones they love, and enjoy a shared community experience" },
+                { title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents browse, favorite, and enjoy portraits together" },
                 { title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
-                { title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits are featured and delivered as high-resolution downloads for display on your community Pet Wall" },
+                { title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits featured as high-res downloads for your Pet Wall" },
                 { title: "Custom Pet Keepsakes", desc: "Transform portraits into calendars, framed artwork, and gift-ready products" },
-                { title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected and involved" },
+                { title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected" },
                 { title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
-                { title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs and resident activities" },
+                { title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs" },
               ].map((feature, i) => (
-                <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-green-50/50 border border-green-100/50">
-                  <div className="p-1 rounded-full bg-green-100 mt-0.5">
-                    <Check className="h-5 w-5 text-green-600" />
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-green-50/50 border border-green-100/50">
+                  <div className="p-1 rounded-full bg-green-100 mt-0.5 shrink-0">
+                    <Check className="h-4 w-4 text-green-600" />
                   </div>
                   <div>
-                    <p className="font-bold text-base">{feature.title}</p>
-                    <p className="text-muted-foreground mt-1 leading-relaxed">{feature.desc}</p>
+                    <p className="font-bold text-sm">{feature.title}</p>
+                    <p className="text-muted-foreground text-sm mt-0.5">{feature.desc}</p>
                   </div>
                 </div>
               ))}
@@ -152,8 +152,8 @@ export default function PlanPage() {
         </Card>
 
         {/* Pricing */}
-        <Card className="mb-10 border-2 border-primary shadow-lg">
-          <CardContent className="p-8">
+        <Card className="mb-6 border-2 border-primary shadow-lg">
+          <CardContent className="p-6">
             <h2 className="font-serif font-bold text-2xl mb-6 flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10"><DollarSign className="h-5 w-5 text-primary" /></div>
               Simple, Transparent Pricing
@@ -178,8 +178,8 @@ export default function PlanPage() {
         </Card>
 
         {/* Try It Risk-Free */}
-        <Card className="mb-10 border-0 shadow-lg bg-blue-50">
-          <CardContent className="p-8">
+        <Card className="mb-6 border-0 shadow-lg bg-blue-50">
+          <CardContent className="p-6">
             <h2 className="font-serif font-bold text-2xl mb-4 flex items-center gap-3 text-blue-900">
               <div className="p-2 rounded-lg bg-blue-100"><Gift className="h-5 w-5 text-blue-600" /></div>
               Try It Risk-Free
@@ -190,7 +190,7 @@ export default function PlanPage() {
         </Card>
 
         {/* Closing Pitch */}
-        <div className="text-center mb-12 py-8">
+        <div className="text-center mb-8 py-4">
           <Heart className="h-8 w-8 text-primary mx-auto mb-4" />
           <h2 className="font-serif font-bold text-2xl mb-4">A Simple Way to Delight Your Residents</h2>
           <p className="text-xl text-muted-foreground italic leading-relaxed max-w-lg mx-auto">
@@ -200,7 +200,7 @@ export default function PlanPage() {
         </div>
 
         {/* Activation Buttons */}
-        <div className="space-y-4 mb-10">
+        <div className="space-y-3 mb-6">
           <Button
             className="w-full gap-3 h-16 text-xl font-semibold shadow-lg"
             disabled={loading}
@@ -233,7 +233,7 @@ export default function PlanPage() {
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center pb-16">
+        <div className="flex justify-between items-center pb-8">
           <Button variant="outline" onClick={goBack} disabled={loading} className="gap-2 h-11">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
