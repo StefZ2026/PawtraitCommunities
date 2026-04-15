@@ -15,6 +15,7 @@ import ResidentDashboard from "@/pages/resident-dashboard";
 import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
 import AdminOrder from "@/pages/admin-order";
+import ResidentDetail from "@/pages/resident-detail";
 import Styles from "@/pages/styles";
 import OrderMerch from "@/pages/order-merch";
 import Privacy from "@/pages/privacy";
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/join" component={JoinCommunity} />
+      <Route path="/community/:orgId/resident/:residentId" component={ResidentDetail} />
       <Route path="/community/:orgId" component={CommunityDashboard} />
       <Route path="/community" component={CommunityDashboard} />
       <Route path="/dashboard" component={ResidentDashboard} />

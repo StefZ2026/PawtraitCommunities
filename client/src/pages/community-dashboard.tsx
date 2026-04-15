@@ -244,9 +244,9 @@ export default function CommunityDashboard() {
                       </thead>
                       <tbody>
                         {residents.map((r: any) => (
-                          <tr key={r.id} className="border-b last:border-0">
+                          <tr key={r.id} className="border-b last:border-0 cursor-pointer hover:bg-muted/50" onClick={() => setLocation(`/community/${communityId}/resident/${r.id}`)}>
                             <td className="py-3 font-medium">{r.home_number}</td>
-                            <td className="py-3">{r.display_name || "—"}</td>
+                            <td className="py-3 text-primary font-medium">{r.display_name || "—"}</td>
                             <td className="py-3 text-sm text-muted-foreground">{r.email || "—"}</td>
                             <td className="py-3 text-center">{r.pet_count}</td>
                             <td className="py-3 text-center">{r.portrait_count}</td>
