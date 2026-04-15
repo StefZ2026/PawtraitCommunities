@@ -25,6 +25,7 @@ export default function CommunityDashboard() {
   const token = session?.access_token;
   const [copied, setCopied] = useState(false);
   const [addResidentOpen, setAddResidentOpen] = useState(false);
+  const [addResStep, setAddResStep] = useState<"home" | "name" | "contact" | "done">("home");
   const [newHomeNumber, setNewHomeNumber] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -87,9 +88,7 @@ export default function CommunityDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/residents", communityId] });
       queryClient.invalidateQueries({ queryKey: ["/api/my-community-admin", orgId] });
-      setAddResidentOpen(false);
-      setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone("");
-      toast({ title: "Resident added!" });
+      setAddResStep("done");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -210,19 +209,58 @@ export default function CommunityDashboard() {
                   <CardTitle className="text-base">Residents</CardTitle>
                   <p className="text-sm text-muted-foreground">{residents.length} registered</p>
                 </div>
-                <Dialog open={addResidentOpen} onOpenChange={setAddResidentOpen}>
+                <Dialog open={addResidentOpen} onOpenChange={(open) => { setAddResidentOpen(open); if (!open) { setAddResStep("home"); setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone(""); } }}>
                   <DialogTrigger asChild><Button size="sm" className="gap-1"><Plus className="h-4 w-4" />Add Resident</Button></DialogTrigger>
                   <DialogContent>
-                    <DialogHeader><DialogTitle>Add Resident</DialogTitle></DialogHeader>
-                    <form onSubmit={(e) => { e.preventDefault(); addResidentMutation.mutate(); }} className="space-y-3">
-                      <div><Label>Home/Unit # *</Label><Input value={newHomeNumber} onChange={(e) => setNewHomeNumber(e.target.value)} required /></div>
-                      <div><Label>Name</Label><Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} /></div>
-                      <div><Label>Email</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div>
-                      <div><Label>Phone</Label><Input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} /></div>
-                      <Button type="submit" className="w-full" disabled={addResidentMutation.isPending}>
-                        {addResidentMutation.isPending ? "Adding..." : "Add Resident"}
-                      </Button>
-                    </form>
+                    {addResStep === "home" && (
+                      <>
+                        <DialogHeader><DialogTitle>What's their home or unit number?</DialogTitle></DialogHeader>
+                        <div className="space-y-4">
+                          <Input value={newHomeNumber} onChange={(e) => setNewHomeNumber(e.target.value)} placeholder="e.g. 147 or Unit B" autoFocus className="text-lg h-12" />
+                          <Button size="lg" className="w-full text-base" disabled={!newHomeNumber.trim()} onClick={() => setAddResStep("name")}>Next</Button>
+                        </div>
+                      </>
+                    )}
+                    {addResStep === "name" && (
+                      <>
+                        <DialogHeader><DialogTitle>What's the resident's name?</DialogTitle></DialogHeader>
+                        <div className="space-y-4">
+                          <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Barbara Schnee" autoFocus className="text-lg h-12" />
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setAddResStep("home")}>Back</Button>
+                            <Button size="lg" className="flex-1 text-base" onClick={() => setAddResStep("contact")}>Next</Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {addResStep === "contact" && (
+                      <>
+                        <DialogHeader><DialogTitle>How can we reach them?</DialogTitle></DialogHeader>
+                        <div className="space-y-4">
+                          <div><Label>Email</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Optional — we'll send the invite here" className="h-11" /></div>
+                          <div><Label>Phone</Label><Input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Optional" className="h-11" /></div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setAddResStep("name")}>Back</Button>
+                            <Button size="lg" className="flex-1 text-base" disabled={addResidentMutation.isPending} onClick={() => addResidentMutation.mutate()}>
+                              {addResidentMutation.isPending ? "Adding..." : "Add & Send Invite"}
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {addResStep === "done" && (
+                      <>
+                        <DialogHeader><DialogTitle>Resident Added!</DialogTitle></DialogHeader>
+                        <div className="space-y-4 text-center">
+                          <p className="text-muted-foreground">{newDisplayName || `Home #${newHomeNumber}`} has been added. Share this link so they can set up their pets:</p>
+                          <div className="flex gap-2">
+                            <Input value={`https://pawtraitcommunities.com/join?code=${community?.communityCode}`} readOnly className="text-sm" />
+                            <Button variant="outline" size="icon" onClick={() => copyToClipboard(`https://pawtraitcommunities.com/join?code=${community?.communityCode}`, "Invite link")}><Copy className="h-4 w-4" /></Button>
+                          </div>
+                          <Button className="w-full" onClick={() => setAddResidentOpen(false)}>Done</Button>
+                        </div>
+                      </>
+                    )}
                   </DialogContent>
                 </Dialog>
               </CardHeader>
