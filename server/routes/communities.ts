@@ -113,11 +113,17 @@ export function registerCommunityRoutes(app: Express): void {
       const userId = req.user.claims.sub;
       const userEmail = req.user.claims.email;
       const isAdminUser = userEmail === process.env.ADMIN_EMAIL;
+      const requestedOrgId = req.query.orgId;
 
-      // Check if user owns a community, or if admin check all communities
-      let orgResult = await pool.query("SELECT * FROM organizations WHERE owner_id = $1 AND is_active = true ORDER BY created_at DESC LIMIT 1", [userId]);
-      if (orgResult.rows.length === 0 && isAdminUser) {
-        orgResult = await pool.query("SELECT * FROM organizations WHERE is_active = true ORDER BY created_at DESC LIMIT 1");
+      // Admin can view any community by orgId
+      let orgResult;
+      if (requestedOrgId && isAdminUser) {
+        orgResult = await pool.query("SELECT * FROM organizations WHERE id = $1 AND is_active = true", [requestedOrgId]);
+      } else {
+        orgResult = await pool.query("SELECT * FROM organizations WHERE owner_id = $1 AND is_active = true ORDER BY created_at DESC LIMIT 1", [userId]);
+        if (orgResult.rows.length === 0 && isAdminUser) {
+          orgResult = await pool.query("SELECT * FROM organizations WHERE is_active = true ORDER BY created_at DESC LIMIT 1");
+        }
       }
       if (orgResult.rows.length === 0) return res.status(404).json({ error: "No community found" });
       const org = orgResult.rows[0];

@@ -348,9 +348,9 @@ export default function Admin() {
                     {communities.map((c: any) => (
                       <tr key={c.id} className="border-b last:border-0">
                         <td className="py-4">
-                          <a href={`/${c.slug}`} target="_blank" className="hover:underline">
+                          <Link href={`/community/${c.id}`} className="hover:underline">
                             <p className="font-medium text-primary">{c.name}</p>
-                          </a>
+                          </Link>
                           <p className="text-sm text-muted-foreground">{c.contactEmail || "—"}</p>
                         </td>
                         <td className="py-4">

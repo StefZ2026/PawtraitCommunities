@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,23 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Copy, Users, Dog, Image, ExternalLink, Mail, MessageSquare,
-  Check, QrCode, Printer, Share2
+  Check, Printer
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CommunityDashboard() {
+  const { orgId } = useParams<{ orgId?: string }>();
   const [, setLocation] = useLocation();
   const { isAuthenticated, isAdmin, isLoading: authLoading, session } = useAuth();
   const { toast } = useToast();
   const token = session?.access_token;
   const [copied, setCopied] = useState(false);
 
-  // Get the community this user owns
+  // Get the community — either by orgId (admin drilling in) or by owner_id
   const { data: community, isLoading } = useQuery({
-    queryKey: ["/api/my-community-admin"],
+    queryKey: ["/api/my-community-admin", orgId],
     queryFn: async () => {
-      const res = await fetch("/api/my-community-admin", { headers: { Authorization: `Bearer ${token}` } });
+      const url = orgId ? `/api/my-community-admin?orgId=${orgId}` : "/api/my-community-admin";
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 404) return null;
       if (!res.ok) return null;
       return res.json();

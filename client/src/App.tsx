@@ -28,6 +28,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/join" component={JoinCommunity} />
+      <Route path="/community/:orgId" component={CommunityDashboard} />
       <Route path="/community" component={CommunityDashboard} />
       <Route path="/dashboard" component={ResidentDashboard} />
       <Route path="/admin" component={Admin} />
