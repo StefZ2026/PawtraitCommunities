@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
   Home, LogOut, Pencil, Trash2, TrendingUp, AlertTriangle,
-  Wallet, MessageSquare, ShoppingBag
+  Wallet, MessageSquare, ShoppingBag, DollarSign
 } from "lucide-react";
 import { CatFilled } from "@/components/cat-filled";
 import { CreateCommunityWizard } from "@/components/create-community-wizard";
@@ -49,6 +49,16 @@ export default function Admin() {
     queryFn: async () => {
       const res = await fetch("/api/admin/communities", { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+    enabled: !!token && isAdmin,
+  });
+
+  const { data: financials } = useQuery({
+    queryKey: ["/api/admin/financials"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/financials", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return null;
       return res.json();
     },
     enabled: !!token && isAdmin,
@@ -273,6 +283,43 @@ export default function Admin() {
                 <div>
                   <p className="text-2xl font-bold">{communities.reduce((s: number, c: any) => s + (c.totalHomes || 0), 0).toLocaleString()}</p>
                   <p className="text-sm text-muted-foreground">Total Homes</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stats Cards — Row 3: Financial */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-green-100"><DollarSign className="h-5 w-5 text-green-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">${((financials?.merchRevenueCents || 0) / 100).toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Merch Revenue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-indigo-100"><ShoppingBag className="h-5 w-5 text-indigo-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{financials?.merchOrderCount || 0}</p>
+                  <p className="text-sm text-muted-foreground">Merch Orders</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-emerald-100"><CreditCard className="h-5 w-5 text-emerald-600" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{activeSubs}</p>
+                  <p className="text-sm text-muted-foreground">Paid Subscriptions</p>
                 </div>
               </div>
             </CardContent>

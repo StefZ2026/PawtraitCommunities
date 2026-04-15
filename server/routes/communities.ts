@@ -150,6 +150,31 @@ export function registerCommunityRoutes(app: Express): void {
     } catch (error: any) { res.status(500).json({ error: "Failed" }); }
   });
 
+  // Admin: Financial overview
+  app.get("/api/admin/financials", isAuthenticated, isAdmin, async (_req: any, res: Response) => {
+    try {
+      const [merchOrders, merchRevenue, subscriptions] = await Promise.all([
+        pool.query("SELECT COUNT(*) as count FROM merch_orders WHERE status != 'canceled'"),
+        pool.query("SELECT COALESCE(SUM(total_cents), 0) as total FROM merch_orders WHERE status IN ('paid', 'submitted', 'admin_direct')"),
+        pool.query("SELECT subscription_status, COUNT(*) as count FROM organizations WHERE is_active = true GROUP BY subscription_status"),
+      ]);
+
+      const subCounts: Record<string, number> = {};
+      for (const row of subscriptions.rows) {
+        subCounts[row.subscription_status || "pending"] = Number(row.count);
+      }
+
+      res.json({
+        merchOrderCount: Number(merchOrders.rows[0]?.count || 0),
+        merchRevenueCents: Number(merchRevenue.rows[0]?.total || 0),
+        subscriptions: subCounts,
+      });
+    } catch (err: any) {
+      console.error("[admin] Financials error:", err.message);
+      res.status(500).json({ error: "Failed to load financials" });
+    }
+  });
+
   // Admin: Edit community
   app.patch("/api/admin/communities/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
     try {
