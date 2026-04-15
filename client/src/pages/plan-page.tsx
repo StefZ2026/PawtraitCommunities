@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Check, Gift, CreditCard, Loader2, Sparkles, DollarSign, Dog, Heart } from "lucide-react";
+import { ArrowLeft, Check, Gift, CreditCard, Loader2, Sparkles, DollarSign, Dog, Heart, Image, Trophy, ShoppingBag, MessageSquare, Users, HandHeart } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { CatFilled } from "@/components/cat-filled";
@@ -129,22 +129,23 @@ export default function PlanPage() {
             </h2>
             <div className="space-y-3">
               {[
-                { title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents browse, favorite, and enjoy portraits together" },
-                { title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
-                { title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits featured as high-res downloads for your Pet Wall" },
-                { title: "Custom Pet Keepsakes", desc: "Transform portraits into calendars, framed artwork, and gift-ready products" },
-                { title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected" },
-                { title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
-                { title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs" },
+                { icon: Image, color: "bg-purple-100 text-purple-600", title: "Dedicated Community Gallery", desc: "A private, branded gallery where residents browse, favorite, and enjoy portraits together" },
+                { icon: Sparkles, color: "bg-amber-100 text-amber-600", title: "Unlimited AI Pet Portraits", desc: "Beautiful, stylized images residents will love to display, share, and gift" },
+                { icon: Trophy, color: "bg-blue-100 text-blue-600", title: "Community Pet Wall", desc: "Each quarter, 20 favorited portraits featured as high-res downloads for your Pet Wall" },
+                { icon: ShoppingBag, color: "bg-pink-100 text-pink-600", title: "Custom Pet Keepsakes", desc: "Transform portraits into calendars, framed artwork, and gift-ready products" },
+                { icon: MessageSquare, color: "bg-green-100 text-green-600", title: "Built-In Engagement Tools", desc: "SMS notifications and sharing features to keep residents connected" },
+                { icon: Users, color: "bg-cyan-100 text-cyan-600", title: "Effortless Resident Onboarding", desc: "Simple access codes allow residents to join in minutes" },
+                { icon: HandHeart, color: "bg-orange-100 text-orange-600", title: "Community Benefit Program", desc: "A portion of every purchase supports your community programs" },
               ].map((feature, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-green-50/50 border border-green-100/50">
-                  <div className="p-1 rounded-full bg-green-100 mt-0.5 shrink-0">
-                    <Check className="h-4 w-4 text-green-600" />
+                <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-border/50 hover:border-primary/20 hover:bg-primary/[0.02] transition-colors">
+                  <div className={`p-2.5 rounded-xl ${feature.color} shrink-0`}>
+                    <feature.icon className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="font-bold text-sm">{feature.title}</p>
-                    <p className="text-muted-foreground text-sm mt-0.5">{feature.desc}</p>
+                  <div className="flex-1">
+                    <p className="font-bold">{feature.title}</p>
+                    <p className="text-muted-foreground text-sm">{feature.desc}</p>
                   </div>
+                  <Check className="h-5 w-5 text-green-500 shrink-0" />
                 </div>
               ))}
             </div>
