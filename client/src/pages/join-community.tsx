@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dog, Cat, CheckCircle, Camera, Upload, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { Dog, Cat, CheckCircle, Camera, Upload, ArrowLeft, ArrowRight, Sparkles, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
-type WizardStep = "code" | "name" | "home" | "contact" | "petCount" | "petDetail" | "household" | "homeTaken" | "done";
+type WizardStep = "code" | "account" | "name" | "home" | "contact" | "petCount" | "petDetail" | "household" | "homeTaken" | "nameConfirm" | "done";
 
 export default function JoinCommunity() {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading: authLoading, session } = useAuth();
+  const { isAuthenticated, session } = useAuth();
   const { toast } = useToast();
   const token = session?.access_token;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,14 +48,21 @@ export default function JoinCommunity() {
   // Household name
   const [householdName, setHouseholdName] = useState("");
 
+  // Name confirmation (when admin-entered name differs from what resident typed)
+  const [existingName, setExistingName] = useState("");
+  const [newName, setNewName] = useState("");
+
+  // Account creation state
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   // Pre-fill code from URL param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     if (code) setCommunityCode(code.toUpperCase());
   }, []);
-
-  if (!authLoading && !isAuthenticated) { setLocation("/login"); return null; }
 
   async function validateCode() {
     setLoading(true);
@@ -70,9 +78,53 @@ export default function JoinCommunity() {
       }
       setCommunityName(data.communityName);
       setCommunityId(data.communityId);
-      setStep("name");
+      // If already logged in, skip account creation
+      if (isAuthenticated) {
+        setStep("name");
+      } else {
+        setStep("account");
+      }
     } catch { toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" }); }
     finally { setLoading(false); }
+  }
+
+  async function createAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (!accountEmail || !accountPassword) return;
+    setLoading(true);
+    try {
+      // Create account via server (bypasses Supabase email rate limits)
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: accountEmail, password: accountPassword, firstName: "", lastName: "", acceptedTerms: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Signup failed");
+
+      // Log them in immediately
+      const { error } = await supabase.auth.signInWithPassword({ email: accountEmail, password: accountPassword });
+      if (error) throw error;
+
+      // Pre-fill email in contact step
+      setEmail(accountEmail);
+      setStep("name");
+    } catch (error: any) {
+      // If account already exists, try logging in
+      if (error.message?.includes("already") || error.message?.includes("exists")) {
+        try {
+          const { error: loginErr } = await supabase.auth.signInWithPassword({ email: accountEmail, password: accountPassword });
+          if (loginErr) throw loginErr;
+          setEmail(accountEmail);
+          setStep("name");
+          return;
+        } catch {
+          toast({ title: "Account already exists", description: "That email is already registered. Check your password and try again.", variant: "destructive" });
+          return;
+        }
+      }
+      toast({ title: "Couldn't create account", description: error.message, variant: "destructive" });
+    } finally { setLoading(false); }
   }
 
   function initPets() {
@@ -109,7 +161,7 @@ export default function JoinCommunity() {
     }
   }
 
-  async function finishSetup() {
+  async function finishSetup(confirmedName?: string) {
     setLoading(true);
     try {
       // Register as resident
@@ -119,11 +171,22 @@ export default function JoinCommunity() {
         body: JSON.stringify({
           communityCode: communityCode.trim(),
           homeNumber: homeNumber.trim(),
-          displayName: householdName || `${firstName} ${lastName}`,
+          displayName: confirmedName || householdName || `${firstName} ${lastName}`,
           phone: phone.trim() || null,
+          confirmMatch: !!confirmedName,
         }),
       });
       const regData = await regRes.json();
+
+      // Name mismatch — ask which is correct
+      if (regData.needsConfirmation) {
+        setExistingName(regData.existingName);
+        setNewName(regData.newName);
+        setStep("nameConfirm");
+        setLoading(false);
+        return;
+      }
+
       if (regRes.status === 409 && regData.error === "home_number_taken") {
         setStep("homeTaken");
         setLoading(false);
@@ -166,6 +229,12 @@ export default function JoinCommunity() {
               <p className="text-sm text-muted-foreground">Enter the code your community provided</p>
             </>
           )}
+          {step === "account" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Welcome to {communityName}!</h1>
+              <p className="text-sm text-muted-foreground">Create your account to get started</p>
+            </>
+          )}
           {step === "name" && (
             <>
               <h1 className="text-2xl font-serif font-bold">Welcome to {communityName}!</h1>
@@ -205,6 +274,12 @@ export default function JoinCommunity() {
               <p className="text-sm text-muted-foreground">What should we call your household?</p>
             </>
           )}
+          {step === "nameConfirm" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Quick Question</h1>
+              <p className="text-sm text-muted-foreground">We have your name spelled two ways</p>
+            </>
+          )}
           {step === "homeTaken" && (
             <>
               <h1 className="text-2xl font-serif font-bold">Just a Moment</h1>
@@ -232,6 +307,54 @@ export default function JoinCommunity() {
               />
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Checking..." : "Continue"}
+              </Button>
+            </form>
+          )}
+
+          {/* Account Step — create account inline, no redirect to /login */}
+          {step === "account" && (
+            <form onSubmit={createAccount} className="space-y-4">
+              <div>
+                <Label>Email Address</Label>
+                <Input
+                  type="email"
+                  value={accountEmail}
+                  onChange={(e) => setAccountEmail(e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="text-lg h-12"
+                  required
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground mt-1">We'll use this to keep your account safe</p>
+              </div>
+              <div>
+                <Label>Create a Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={accountPassword}
+                    onChange={(e) => setAccountPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="text-lg h-12"
+                    required
+                    minLength={6}
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                By continuing, you agree to our <a href="/terms" className="text-primary hover:underline" target="_blank">Terms</a> and <a href="/privacy" className="text-primary hover:underline" target="_blank">Privacy Policy</a>
+              </p>
+              <Button type="submit" className="w-full h-12 text-base" disabled={loading || !accountEmail || accountPassword.length < 6}>
+                {loading ? "Creating account..." : "Continue"}
+              </Button>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Already have an account? Just enter your email and password above — we'll log you in.</p>
+              </div>
+              <Button variant="outline" className="w-full gap-1" onClick={() => setStep("code")} type="button">
+                <ArrowLeft className="h-4 w-4" />Back
               </Button>
             </form>
           )}
@@ -384,6 +507,36 @@ export default function JoinCommunity() {
                   {loading ? "Setting up..." : <><Sparkles className="h-4 w-4" />Let's Go!</>}
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* Name Confirmation Step — admin entered name differs from what resident typed */}
+          {step === "nameConfirm" && (
+            <div className="space-y-4">
+              <p className="text-center text-muted-foreground">
+                Your community manager has you as one name, but you entered another. Which is correct?
+              </p>
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full h-14 text-lg justify-start px-6"
+                  onClick={() => finishSetup(existingName)}
+                  disabled={loading}
+                >
+                  <CheckCircle className="h-5 w-5 mr-3 text-primary" />
+                  {existingName}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-14 text-lg justify-start px-6"
+                  onClick={() => finishSetup(newName)}
+                  disabled={loading}
+                >
+                  <CheckCircle className="h-5 w-5 mr-3 text-primary" />
+                  {newName}
+                </Button>
+              </div>
+              {loading && <p className="text-center text-sm text-muted-foreground">Setting up your account...</p>}
             </div>
           )}
 

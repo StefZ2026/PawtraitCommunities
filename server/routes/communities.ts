@@ -354,14 +354,61 @@ export function registerCommunityRoutes(app: Express): void {
     try {
       const userId = req.user.claims.sub;
       const userEmail = req.user.claims.email || "";
-      const { communityCode, homeNumber, displayName, phone } = req.body;
+      const { communityCode, homeNumber, displayName, phone, confirmMatch } = req.body;
       if (!communityCode || !homeNumber) return res.status(400).json({ error: "Community code and home number are required" });
       const org = await storage.getOrganizationByCommunityCode(communityCode.trim().toUpperCase());
       if (!org) return res.status(400).json({ error: "Invalid community code" });
       const existing = await storage.getResidentByAuthId(userId, org.id);
       if (existing) return res.status(400).json({ error: "Already registered in this community" });
 
-      // Check if home number is already taken by an active resident
+      // Check if admin already created a resident record for this person
+      // Match by email, phone, or home number (admin pre-registered them)
+      const preRegistered = await pool.query(
+        `SELECT id, display_name, email, phone, home_number, supabase_auth_id FROM residents
+         WHERE organization_id = $1 AND is_active = true
+         AND supabase_auth_id LIKE 'placeholder-%'
+         AND (
+           (email IS NOT NULL AND LOWER(email) = LOWER($2))
+           OR (phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(phone, '-', ''), '(', ''), ')', '') = REPLACE(REPLACE(REPLACE($3, '-', ''), '(', ''), ')', ''))
+           OR (home_number = $4)
+         )
+         LIMIT 1`,
+        [org.id, userEmail, phone || "", homeNumber.trim()]
+      );
+
+      if (preRegistered.rows.length > 0) {
+        const preReg = preRegistered.rows[0];
+
+        // Check if names differ — ask the user which is correct
+        if (displayName && preReg.display_name && !confirmMatch) {
+          const existingName = preReg.display_name.trim().toLowerCase();
+          const newName = displayName.trim().toLowerCase();
+          if (existingName !== newName) {
+            return res.status(200).json({
+              needsConfirmation: true,
+              existingName: preReg.display_name,
+              newName: displayName,
+              message: "We have your name spelled two ways. Which is correct?",
+            });
+          }
+        }
+
+        // Link the pre-registered record to this auth user
+        const finalName = confirmMatch ? displayName : (displayName || preReg.display_name);
+        await pool.query(
+          `UPDATE residents SET supabase_auth_id = $1, display_name = $2, email = $3, phone = COALESCE($4, phone)
+           WHERE id = $5`,
+          [userId, finalName, userEmail, phone || null, preReg.id]
+        );
+
+        return res.status(200).json({
+          residentId: preReg.id, communityId: org.id, communityName: org.name,
+          communitySlug: org.slug, homeNumber: preReg.home_number,
+          matched: true,
+        });
+      }
+
+      // No pre-registered record — check if home number is taken by someone else
       const homeCheck = await pool.query(
         "SELECT id, display_name FROM residents WHERE organization_id = $1 AND home_number = $2 AND is_active = true",
         [org.id, homeNumber.trim()]
@@ -374,6 +421,7 @@ export function registerCommunityRoutes(app: Express): void {
         });
       }
 
+      // New resident — create fresh record
       const resident = await storage.createResident({ supabaseAuthId: userId, organizationId: org.id, homeNumber: homeNumber.trim(), displayName: displayName || null, email: userEmail, phone: phone || null, role: "resident", notificationPreference: "email" });
       res.status(201).json({ residentId: resident.id, communityId: org.id, communityName: org.name, communitySlug: org.slug, homeNumber: resident.homeNumber });
     } catch (error: any) { console.error("Error registering:", error.message); res.status(500).json({ error: "Registration failed" }); }
