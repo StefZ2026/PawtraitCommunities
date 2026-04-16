@@ -325,6 +325,17 @@ export default function ResidentDashboard() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Create Calendar CTA */}
+            <Card className="mt-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <CardContent className="p-6 text-center">
+                <h3 className="text-xl font-serif font-bold mb-2">Turn Your Portraits into a Custom Calendar</h3>
+                <p className="text-muted-foreground mb-4">12 months of beautiful AI portraits — printed on premium paper and shipped to your door</p>
+                <Button size="lg" className="gap-2 text-lg h-14 px-8" asChild>
+                  <Link href="/calendar/new"><Sparkles className="h-5 w-5" />Create My Calendar — $75</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

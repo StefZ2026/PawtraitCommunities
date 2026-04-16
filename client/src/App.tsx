@@ -23,6 +23,7 @@ import Terms from "@/pages/terms";
 import GetStarted from "@/pages/get-started";
 import PlanPage from "@/pages/plan-page";
 import CommunityDashboard from "@/pages/community-dashboard";
+import CalendarBuilder from "@/pages/calendar-builder";
 
 function Router() {
   return (
@@ -33,6 +34,8 @@ function Router() {
       <Route path="/community/:orgId/resident/:residentId" component={ResidentDetail} />
       <Route path="/community/:orgId" component={CommunityDashboard} />
       <Route path="/community" component={CommunityDashboard} />
+      <Route path="/calendar/new" component={CalendarBuilder} />
+      <Route path="/calendar/:id" component={CalendarBuilder} />
       <Route path="/dashboard" component={ResidentDashboard} />
       <Route path="/admin/order" component={AdminOrder} />
       <Route path="/admin" component={Admin} />
