@@ -251,11 +251,26 @@ export default function CommunityDashboard() {
                     {addResStep === "done" && (
                       <>
                         <DialogHeader><DialogTitle>Resident Added!</DialogTitle></DialogHeader>
-                        <div className="space-y-4 text-center">
-                          <p className="text-muted-foreground">{newDisplayName || `Home #${newHomeNumber}`} has been added. Share this link so they can set up their pets:</p>
-                          <div className="flex gap-2">
-                            <Input value={`https://pawtraitcommunities.com/join?code=${community?.communityCode}`} readOnly className="text-sm" />
-                            <Button variant="outline" size="icon" onClick={() => copyToClipboard(`https://pawtraitcommunities.com/join?code=${community?.communityCode}`, "Invite link")}><Copy className="h-4 w-4" /></Button>
+                        <div className="space-y-4">
+                          <p className="text-muted-foreground text-center">{newDisplayName || `Home #${newHomeNumber}`} has been added. How would you like to send them the invite?</p>
+                          <div className="space-y-2">
+                            {newEmail && (
+                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" asChild>
+                                <a href={`mailto:${newEmail}?subject=${encodeURIComponent(`Join ${community?.name} on Pawtrait Communities!`)}&body=${encodeURIComponent(`Hi ${newDisplayName || 'neighbor'}!\n\nYou're invited to join ${community?.name} on Pawtrait Communities! Get a free AI portrait of your pet in 50+ stunning styles.\n\nClick here to join: https://pawtraitcommunities.com/join?code=${community?.communityCode}\n\nYour code: ${community?.communityCode}`)}`}>
+                                  <Mail className="h-5 w-5" />Send Email to {newEmail}
+                                </a>
+                              </Button>
+                            )}
+                            {newPhone && (
+                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" asChild>
+                                <a href={`sms:${newPhone}?body=${encodeURIComponent(`Hi ${newDisplayName || 'neighbor'}! You're invited to join ${community?.name} on Pawtrait Communities. Get a free AI portrait of your pet! Join here: https://pawtraitcommunities.com/join?code=${community?.communityCode}`)}`}>
+                                  <MessageSquare className="h-5 w-5" />Send Text to {newPhone}
+                                </a>
+                              </Button>
+                            )}
+                            <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" onClick={() => copyToClipboard(`https://pawtraitcommunities.com/join?code=${community?.communityCode}`, "Invite link")}>
+                              <Copy className="h-5 w-5" />Copy Invite Link
+                            </Button>
                           </div>
                           <Button className="w-full" onClick={() => setAddResidentOpen(false)}>Done</Button>
                         </div>
