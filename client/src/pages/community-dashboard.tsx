@@ -256,7 +256,12 @@ export default function CommunityDashboard() {
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div>
                   <CardTitle className="text-base">Residents</CardTitle>
-                  <p className="text-sm text-muted-foreground">{residents.length} registered</p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    {residents.length} registered
+                    <span className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-0.5 rounded-full">
+                      {commPref === "text" ? <><MessageSquare className="h-3 w-3" />Text invites</> : <><Mail className="h-3 w-3" />Email invites</>}
+                    </span>
+                  </p>
                 </div>
                 <Dialog open={addResidentOpen} onOpenChange={(open) => { setAddResidentOpen(open); if (!open) { setAddResStep("home"); setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone(""); setUseAlternate(false); } }}>
                   <DialogTrigger asChild><Button size="sm" className="gap-1"><Plus className="h-4 w-4" />Add Resident</Button></DialogTrigger>
