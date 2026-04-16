@@ -36,6 +36,9 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
 
+  // Communication preference
+  const [commPref, setCommPref] = useState<"email" | "text">("email");
+
   // Step 2 — Engagement Questions
   const [hasLifestyleDirector, setHasLifestyleDirector] = useState<boolean | null>(null);
   const [hasRegularEvents, setHasRegularEvents] = useState<boolean | null>(null);
@@ -96,7 +99,7 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
           totalHomes: parseInt(totalHomes),
           contactName: contactName || undefined, contactEmail: contactEmail || undefined,
           engagementAnswers: { hasLifestyleDirector, hasRegularEvents, hasNewsletterOrPortal },
-          selectedPlanId,
+          selectedPlanId, communicationPreference: commPref,
         }),
       });
       const createData = await createRes.json();
@@ -204,6 +207,13 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
             <div>
               <Label>Community Contact Email</Label>
               <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optional" />
+            </div>
+            <div>
+              <Label className="mb-2 block">How do you communicate with your residents?</Label>
+              <div className="flex gap-3">
+                <Button type="button" size="lg" variant={commPref === "email" ? "default" : "outline"} className="flex-1 text-base" onClick={() => setCommPref("email")}>Email</Button>
+                <Button type="button" size="lg" variant={commPref === "text" ? "default" : "outline"} className="flex-1 text-base" onClick={() => setCommPref("text")}>Text</Button>
+              </div>
             </div>
             <div className="flex justify-end">
               <Button onClick={() => setStep(2)} disabled={!step1Valid} className="gap-1">

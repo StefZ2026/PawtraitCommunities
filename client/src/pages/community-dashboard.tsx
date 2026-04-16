@@ -30,6 +30,7 @@ export default function CommunityDashboard() {
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [useAlternate, setUseAlternate] = useState(false);
   const [emailTemplate, setEmailTemplate] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
   const [templateLoaded, setTemplateLoaded] = useState(false);
@@ -89,13 +90,9 @@ export default function CommunityDashboard() {
 
   const addResidentMutation = useMutation({
     mutationFn: async () => {
-      // Validate required contact based on comm preference
-      if ((commPref === "email" || commPref === "both") && !newEmail.trim()) {
-        throw new Error("Email is required for this community");
-      }
-      if ((commPref === "text" || commPref === "both") && !newPhone.trim()) {
-        throw new Error("Phone number is required for this community");
-      }
+      const sendingEmail = (commPref === "email" && !useAlternate) || (commPref === "text" && useAlternate);
+      if (sendingEmail && !newEmail.trim()) throw new Error("Email is required");
+      if (!sendingEmail && !newPhone.trim()) throw new Error("Phone number is required");
       if (!newDisplayName.trim()) throw new Error("Resident name is required");
 
       const res = await fetch(`/api/community/${communityId}/residents`, {
@@ -110,9 +107,10 @@ export default function CommunityDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/community/residents", communityId] });
       queryClient.invalidateQueries({ queryKey: ["/api/my-community-admin", orgId] });
 
-      // Auto-send invite based on community preference
+      // Send invite via the active channel
+      const sendingEmail = (commPref === "email" && !useAlternate) || (commPref === "text" && useAlternate);
       let sent = false;
-      if ((commPref === "email" || commPref === "both") && newEmail.trim()) {
+      if (sendingEmail && newEmail.trim()) {
         try {
           await fetch("/api/email/send-invite", {
             method: "POST",
@@ -122,7 +120,7 @@ export default function CommunityDashboard() {
           sent = true;
         } catch {}
       }
-      if ((commPref === "text" || commPref === "both") && newPhone.trim()) {
+      if (!sendingEmail && newPhone.trim()) {
         try {
           await fetch("/api/sms/send-invite", {
             method: "POST",
@@ -139,7 +137,7 @@ export default function CommunityDashboard() {
         toast({ title: "Resident added", description: "No invite was sent — check contact info." });
       }
       setAddResidentOpen(false);
-      setAddResStep("home"); setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone("");
+      setAddResStep("home"); setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone(""); setUseAlternate(false);
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -260,10 +258,14 @@ export default function CommunityDashboard() {
                   <CardTitle className="text-base">Residents</CardTitle>
                   <p className="text-sm text-muted-foreground">{residents.length} registered</p>
                 </div>
-                <Dialog open={addResidentOpen} onOpenChange={(open) => { setAddResidentOpen(open); if (!open) { setAddResStep("home"); setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone(""); } }}>
+                <Dialog open={addResidentOpen} onOpenChange={(open) => { setAddResidentOpen(open); if (!open) { setAddResStep("home"); setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone(""); setUseAlternate(false); } }}>
                   <DialogTrigger asChild><Button size="sm" className="gap-1"><Plus className="h-4 w-4" />Add Resident</Button></DialogTrigger>
                   <DialogContent>
-                    {addResStep === "home" && (
+                    {addResStep === "home" && (() => {
+                      const sendingEmail = (commPref === "email" && !useAlternate) || (commPref === "text" && useAlternate);
+                      const sendingText = (commPref === "text" && !useAlternate) || (commPref === "email" && useAlternate);
+                      const contactReady = sendingEmail ? !!newEmail.trim() : !!newPhone.trim();
+                      return (
                       <>
                         <DialogHeader><DialogTitle>Add a New Resident</DialogTitle></DialogHeader>
                         <div className="space-y-4">
@@ -275,35 +277,44 @@ export default function CommunityDashboard() {
                             <Label>Resident Name</Label>
                             <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Sarah Jones" className="text-lg h-12" />
                           </div>
-                          {(commPref === "email" || commPref === "both") && (
+
+                          {/* Default contact field */}
+                          {sendingEmail && (
                             <div>
-                              <Label>Email {commPref === "both" ? "" : "(required)"}</Label>
+                              <Label>Email</Label>
                               <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Their email address" className="h-11" />
                             </div>
                           )}
-                          {(commPref === "text" || commPref === "both") && (
+                          {sendingText && (
                             <div>
-                              <Label>Phone {commPref === "both" ? "" : "(required)"}</Label>
+                              <Label>Phone</Label>
                               <Input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Their cell phone number" className="h-11" />
                             </div>
                           )}
+
+                          {/* Override checkbox */}
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" id="alt-contact" checked={useAlternate} onChange={(e) => { setUseAlternate(e.target.checked); if (!e.target.checked) { if (commPref === "email") setNewPhone(""); else setNewEmail(""); } }} className="rounded" />
+                            <label htmlFor="alt-contact" className="text-sm text-muted-foreground cursor-pointer">
+                              {commPref === "email" ? "Can't receive email — send text instead" : "Can't receive text — send email instead"}
+                            </label>
+                          </div>
+
                           <Button
                             size="lg"
                             className="w-full text-base h-14"
-                            disabled={
-                              !newHomeNumber.trim() ||
-                              !newDisplayName.trim() ||
-                              ((commPref === "email" || commPref === "both") && !newEmail.trim()) ||
-                              ((commPref === "text" || commPref === "both") && !newPhone.trim()) ||
-                              addResidentMutation.isPending
-                            }
+                            disabled={!newHomeNumber.trim() || !newDisplayName.trim() || !contactReady || addResidentMutation.isPending}
                             onClick={() => addResidentMutation.mutate()}
                           >
-                            {addResidentMutation.isPending ? "Adding & sending invite..." : "Add Resident & Send Invite"}
+                            {addResidentMutation.isPending
+                              ? (sendingEmail ? "Sending email invite..." : "Sending text invite...")
+                              : (sendingEmail ? "Sending Email Invite" : "Sending Text Invite")
+                            }
                           </Button>
                         </div>
                       </>
-                    )}
+                      );
+                    })()}
                   </DialogContent>
                 </Dialog>
               </CardHeader>
