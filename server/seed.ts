@@ -194,6 +194,22 @@ export async function seedDatabase() {
         await pool.query("ALTER TABLE merch_order_items ADD COLUMN IF NOT EXISTS calendar_project_id INTEGER");
         await pool.query("ALTER TABLE merch_earnings ADD COLUMN IF NOT EXISTS community_share_cents INTEGER");
         await pool.query("ALTER TABLE merch_earnings ADD COLUMN IF NOT EXISTS platform_share_cents INTEGER");
+
+        // Calendar project extensions
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS start_month INTEGER DEFAULT 1");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS calendar_name TEXT");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS birthday_month INTEGER");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS is_multi_pet BOOLEAN DEFAULT false");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS multi_pet_mode TEXT");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS pet_ids TEXT");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS total_generations INTEGER DEFAULT 0");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS max_generations INTEGER DEFAULT 24");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS cover_type TEXT");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS cover_image_id INTEGER");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS pdf_url TEXT");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS gelato_order_id TEXT");
+        await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT");
+        console.log("[migration] Calendar project extensions ready");
         console.log("[migration] All Communities tables ready");
       })(),
       migTimeout,
