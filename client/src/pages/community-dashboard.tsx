@@ -493,15 +493,29 @@ export default function CommunityDashboard() {
                     const flyer = window.open("", "_blank");
                     if (flyer) {
                       flyer.document.write(`<html><head><title>${community.name} - Pawtrait Communities</title>
-                      <style>body{font-family:Georgia,serif;text-align:center;padding:60px;max-width:600px;margin:0 auto}
-                      h1{font-size:36px;color:#E8751E;margin-bottom:10px}h2{font-size:24px;margin-bottom:20px}
-                      .code{font-size:48px;font-family:monospace;letter-spacing:8px;background:#FFF3E0;padding:20px 40px;border-radius:12px;display:inline-block;margin:20px 0;color:#E8751E;font-weight:bold}
+                      <style>body{font-family:Georgia,serif;text-align:center;padding:40px;max-width:650px;margin:0 auto}
+                      h1{font-size:36px;color:#E8751E;margin-bottom:8px}h2{font-size:22px;margin-bottom:16px}
+                      .code{font-size:48px;font-family:monospace;letter-spacing:8px;background:#FFF3E0;padding:16px 36px;border-radius:12px;display:inline-block;margin:16px 0;color:#E8751E;font-weight:bold}
                       p{font-size:16px;color:#666;line-height:1.6}
-                      .url{font-size:14px;color:#999;margin-top:30px}
-                      .features{text-align:left;max-width:400px;margin:20px auto}
-                      .features li{margin:8px 0;font-size:14px}</style></head>
+                      .url{font-size:14px;color:#999;margin-top:20px}
+                      .features{text-align:left;max-width:400px;margin:16px auto}
+                      .features li{margin:6px 0;font-size:14px}
+                      .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:20px auto;max-width:500px}
+                      .gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
+                      .sub{font-size:13px;color:#999;margin-top:4px}</style></head>
                       <body><h1>Pawtrait Communities</h1><h2>${community.name}</h2>
-                      <p>Get a free AI portrait of your pet in 50+ stunning styles!</p>
+                      <p>Get a <strong>free AI portrait</strong> of your pet in 50+ stunning styles!</p>
+                      <div class="gallery">
+                        <img src="https://pawtraitcommunities.com/images/styles/holiday-spirit.jpg" alt="Holiday" />
+                        <img src="https://pawtraitcommunities.com/images/styles/renaissance-noble.jpg" alt="Renaissance" />
+                        <img src="https://pawtraitcommunities.com/images/styles/beach-day.jpg" alt="Beach" />
+                        <img src="https://pawtraitcommunities.com/images/styles/cozy-cabin.jpg" alt="Cozy" />
+                        <img src="https://pawtraitcommunities.com/images/styles/halloween-pumpkin.jpg" alt="Halloween" />
+                        <img src="https://pawtraitcommunities.com/images/styles/superhero.jpg" alt="Superhero" />
+                        <img src="https://pawtraitcommunities.com/images/styles/garden-party.jpg" alt="Garden" />
+                        <img src="https://pawtraitcommunities.com/images/styles/egyptian-royalty.jpg" alt="Egyptian" />
+                      </div>
+                      <p class="sub">Just a few of the 50+ styles available</p>
                       <div class="code">${community.communityCode}</div>
                       <p><strong>How to join:</strong></p>
                       <ul class="features"><li>Go to <strong>pawtraitcommunities.com/join</strong></li>
