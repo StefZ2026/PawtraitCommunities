@@ -145,4 +145,54 @@ export function registerSmsRoutes(app: Express): void {
       res.status(500).json({ error: "Failed to send invite email" });
     }
   });
+
+  // Send broadcast email to all residents in a community
+  app.post("/api/email/notify-community", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const RESEND_KEY = process.env.RESEND_API_KEY;
+      if (!RESEND_KEY) return res.status(503).json({ error: "Email not configured" });
+
+      const { orgId, message } = req.body;
+      if (!orgId || !message) return res.status(400).json({ error: "orgId and message required" });
+
+      const orgResult = await pool.query("SELECT name FROM organizations WHERE id = $1", [orgId]);
+      const communityName = orgResult.rows[0]?.name || "Your Community";
+
+      const residents = await pool.query(
+        "SELECT id, email, display_name FROM residents WHERE organization_id = $1 AND is_active = true AND email IS NOT NULL AND email != ''",
+        [orgId]
+      );
+
+      let sent = 0, failed = 0;
+      for (const r of residents.rows) {
+        try {
+          const emailRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: `${communityName} <noreply@pawtraitcommunities.com>`,
+              to: [r.email],
+              subject: `Message from ${communityName}`,
+              html: `
+                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #FFFAF5;">
+                  <h2 style="color: #E8751E; margin: 0 0 20px 0;">${communityName}</h2>
+                  <p style="font-size: 16px; color: #333;">Hi${r.display_name ? ` ${r.display_name.split(" ")[0]}` : ""}!</p>
+                  <p style="font-size: 16px; color: #333; white-space: pre-wrap;">${message}</p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+                  <p style="font-size: 12px; color: #999; text-align: center;">pawtraitcommunities.com</p>
+                </div>
+              `,
+            }),
+          });
+          if (emailRes.ok) sent++;
+          else failed++;
+        } catch { failed++; }
+      }
+
+      res.json({ sent, failed, total: residents.rows.length });
+    } catch (err: any) {
+      console.error("[email] Broadcast error:", err.message);
+      res.status(500).json({ error: "Failed to send broadcast" });
+    }
+  });
 }

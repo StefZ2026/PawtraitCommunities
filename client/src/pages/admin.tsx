@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Building2, Plus, Users, Dog, Image, CreditCard, Gift, Copy, ExternalLink,
   Home, LogOut, Pencil, Trash2, TrendingUp, AlertTriangle,
-  Wallet, MessageSquare, ShoppingBag, DollarSign
+  Wallet, MessageSquare, ShoppingBag, DollarSign, Mail, Send
 } from "lucide-react";
 import { CatFilled } from "@/components/cat-filled";
 import { CreateCommunityWizard } from "@/components/create-community-wizard";
@@ -38,6 +38,10 @@ export default function Admin() {
 
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastCommunity, setBroadcastCommunity] = useState<any>(null);
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastSending, setBroadcastSending] = useState(false);
   const [editCommunity, setEditCommunity] = useState<any>(null);
   const [editName, setEditName] = useState("");
   const [editTotalHomes, setEditTotalHomes] = useState("");
@@ -167,20 +171,25 @@ export default function Admin() {
     }
   }
 
-  async function sendNotification(orgId: number, type: "portrait" | "broadcast", message?: string) {
+  async function sendBroadcast() {
+    if (!broadcastCommunity || !broadcastMessage.trim()) return;
+    setBroadcastSending(true);
     try {
-      const endpoint = type === "portrait" ? "/api/sms/notify-portrait" : "/api/sms/notify-community";
+      const commPref = broadcastCommunity.communicationPreference || "email";
+      const endpoint = commPref === "text" ? "/api/sms/notify-community" : "/api/email/notify-community";
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ orgId, message: message || "Check out the new portraits in your community gallery!" }),
+        body: JSON.stringify({ orgId: broadcastCommunity.id, message: broadcastMessage }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
-      toast({ title: "Notification sent!", description: `${data.sent || 0} messages sent.` });
+      toast({ title: "Sent!", description: `${data.sent || 0} ${commPref === "text" ? "texts" : "emails"} sent, ${data.failed || 0} failed.` });
+      setBroadcastOpen(false);
+      setBroadcastMessage("");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    } finally { setBroadcastSending(false); }
   }
 
   function copyCode(code: string) {
@@ -406,7 +415,11 @@ export default function Admin() {
                       <tr key={c.id} className="border-b last:border-0">
                         <td className="py-4">
                           <Link href={`/community/${c.id}`} className="hover:underline">
-                            <p className="font-medium text-primary">{c.name}</p>
+                            <p className="font-medium text-primary flex items-center gap-1.5">{c.name}
+                              {c.communicationPreference === "text"
+                                ? <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" title="Texts residents" />
+                                : <Mail className="h-3.5 w-3.5 text-muted-foreground" title="Emails residents" />}
+                            </p>
                           </Link>
                           <p className="text-sm text-muted-foreground">{c.contactEmail || "—"}</p>
                         </td>
@@ -450,8 +463,8 @@ export default function Admin() {
                             <Button variant="ghost" size="icon" title={c.stripeConnectOnboardingComplete ? "Payouts Connected" : "Set Up Payouts"} onClick={() => startConnectOnboarding(c.id)} disabled={!!c.stripeConnectOnboardingComplete}>
                               <Wallet className={`h-4 w-4 ${c.stripeConnectOnboardingComplete ? "text-green-500" : "text-amber-500"}`} />
                             </Button>
-                            <Button variant="ghost" size="icon" title="Send Community Notification" onClick={() => sendNotification(c.id, "broadcast")}>
-                              <MessageSquare className="h-4 w-4 text-blue-500" />
+                            <Button variant="ghost" size="icon" title="Send Broadcast" onClick={() => { setBroadcastCommunity(c); setBroadcastMessage(""); setBroadcastOpen(true); }}>
+                              <Send className="h-4 w-4 text-blue-500" />
                             </Button>
                             <Button variant="ghost" size="icon" title="View Gallery" asChild>
                               <a href={`/${c.slug}`} target="_blank"><ExternalLink className="h-4 w-4" /></a>
@@ -491,6 +504,35 @@ export default function Admin() {
             <div><Label>Community Contact Email</Label><Input type="email" value={editContactEmail} onChange={(e) => setEditContactEmail(e.target.value)} placeholder="Optional" /></div>
             <Button type="submit" className="w-full">Save Changes</Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Broadcast Dialog */}
+      <Dialog open={broadcastOpen} onOpenChange={setBroadcastOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {broadcastCommunity?.communicationPreference === "text"
+                ? <><MessageSquare className="h-5 w-5 text-primary" />Text All Residents</>
+                : <><Mail className="h-5 w-5 text-primary" />Email All Residents</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Sending to all registered residents at <strong>{broadcastCommunity?.name}</strong> via {broadcastCommunity?.communicationPreference === "text" ? "text message" : "email"}
+            </p>
+            <textarea
+              className="w-full min-h-[120px] p-3 rounded-lg border text-sm resize-y"
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              placeholder="Type your message..."
+            />
+            <Button className="w-full gap-2" disabled={!broadcastMessage.trim() || broadcastSending} onClick={sendBroadcast}>
+              {broadcastSending
+                ? `Sending ${broadcastCommunity?.communicationPreference === "text" ? "texts" : "emails"}...`
+                : `Send ${broadcastCommunity?.communicationPreference === "text" ? "Text" : "Email"} to All Residents`}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
