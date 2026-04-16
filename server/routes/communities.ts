@@ -62,7 +62,7 @@ export function registerCommunityRoutes(app: Express): void {
   app.post("/api/communities/register-community", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
-      const { name, slug, totalHomes, contactName, contactEmail, engagementAnswers, communicationPreference } = req.body;
+      const { name, slug, totalHomes, contactName, contactEmail, contactPhone, engagementAnswers, communicationPreference } = req.body;
       if (!name || !slug || !totalHomes || !contactName) return res.status(400).json({ error: "Name, slug, total homes, and contact name are required" });
 
       const existing = await storage.getOrganizationBySlug(slug);
@@ -75,7 +75,7 @@ export function registerCommunityRoutes(app: Express): void {
 
       const org = await storage.createOrganization({
         name, slug, communityCode, totalHomes, contactName, contactEmail: contactEmail || null,
-        ownerId: userId, planId, subscriptionStatus: "pending",
+        contactPhone: contactPhone || null, ownerId: userId, planId, subscriptionStatus: "pending",
         speciesHandled: "both", onboardingCompleted: true, isActive: true,
         communicationPreference: communicationPreference || "email",
       } as any);

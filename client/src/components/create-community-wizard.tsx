@@ -35,6 +35,7 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
   const [totalHomes, setTotalHomes] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
 
   // Communication preference
   const [commPref, setCommPref] = useState<"email" | "text">("email");
@@ -97,7 +98,7 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
         body: JSON.stringify({
           name, slug: slug.toLowerCase().replace(/[^a-z0-9]/g, ""),
           totalHomes: parseInt(totalHomes),
-          contactName: contactName || undefined, contactEmail: contactEmail || undefined,
+          contactName, contactEmail, contactPhone,
           engagementAnswers: { hasLifestyleDirector, hasRegularEvents, hasNewsletterOrPortal },
           selectedPlanId, communicationPreference: commPref,
         }),
@@ -138,7 +139,6 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
     }
   }
 
-  const step1Valid = name.trim() && slug.trim() && totalHomes && parseInt(totalHomes) > 0 && contactName.trim();
   const step2Valid = hasLifestyleDirector !== null && hasRegularEvents !== null && hasNewsletterOrPortal !== null;
 
   const annualSavings = selectedPlan
@@ -180,43 +180,58 @@ export function CreateCommunityWizard({ token, onSuccess, onCancel, selfService 
         <Button size="icon" variant="ghost" onClick={onCancel}><X className="h-4 w-4" /></Button>
       </CardHeader>
       <CardContent>
-        {/* Step 1 — Basic Info */}
+        {/* Step 1 — Community Info + Contact + Communication */}
         {step === 1 && (
-          <div className="space-y-4">
-            <div>
-              <Label>Community Name *</Label>
-              <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Soleil at Lakewood Ranch" />
-            </div>
-            <div>
-              <Label>Community URL</Label>
-              <div className="flex items-center border rounded-md overflow-hidden">
-                <span className="bg-muted px-3 py-2 text-sm text-muted-foreground whitespace-nowrap border-r">pawtraitcommunities.com/</span>
-                <input className="flex-1 px-3 py-2 text-sm bg-background outline-none" value={slug} onChange={(e) => setSlug(e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6">
+            {/* Section 1: Community Info */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Community Info</h3>
               <div>
-                <Label>Total Homes *</Label>
-                <Input type="number" value={totalHomes} onChange={(e) => setTotalHomes(e.target.value)} placeholder="e.g. 700" min="1" />
+                <Label>Community Name</Label>
+                <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Lakewood Ranch" />
               </div>
               <div>
-                <Label>Community Contact Name *</Label>
+                <Label>Community URL</Label>
+                <div className="flex items-center border rounded-md overflow-hidden">
+                  <span className="bg-muted px-3 py-2 text-sm text-muted-foreground whitespace-nowrap border-r">pawtraitcommunities.com/</span>
+                  <input className="flex-1 px-3 py-2 text-sm bg-background outline-none" value={slug} onChange={(e) => setSlug(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <Label>Total Homes</Label>
+                <Input type="number" value={totalHomes} onChange={(e) => setTotalHomes(e.target.value)} placeholder="e.g. 200" min="1" />
+              </div>
+            </div>
+
+            {/* Section 2: Community Contact */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Community Contact</h3>
+              <div>
+                <Label>Contact Name</Label>
                 <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Jane Smith" />
               </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="e.g. jane@community.com" />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="e.g. (555) 555-1234" />
+              </div>
             </div>
-            <div>
-              <Label>Community Contact Email</Label>
-              <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optional" />
-            </div>
-            <div>
-              <Label className="mb-2 block">How do you communicate with your residents?</Label>
+
+            {/* Section 3: Resident Communication */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Resident Communication</h3>
+              <Label className="block">How do you communicate with your residents?</Label>
               <div className="flex gap-3">
                 <Button type="button" size="lg" variant={commPref === "email" ? "default" : "outline"} className="flex-1 text-base" onClick={() => setCommPref("email")}>Email</Button>
                 <Button type="button" size="lg" variant={commPref === "text" ? "default" : "outline"} className="flex-1 text-base" onClick={() => setCommPref("text")}>Text</Button>
               </div>
             </div>
+
             <div className="flex justify-end">
-              <Button onClick={() => setStep(2)} disabled={!step1Valid} className="gap-1">
+              <Button onClick={() => setStep(2)} disabled={!name.trim() || !totalHomes || !contactName.trim() || !contactEmail.trim() || !contactPhone.trim()} className="gap-1">
                 Next <ArrowRight className="h-4 w-4" />
               </Button>
             </div>

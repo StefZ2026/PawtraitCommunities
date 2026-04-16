@@ -276,7 +276,7 @@ export default function CommunityDashboard() {
                         <div className="space-y-4">
                           <div>
                             <Label>Home / Unit Number</Label>
-                            <Input value={newHomeNumber} onChange={(e) => setNewHomeNumber(e.target.value)} placeholder="e.g. 449 or Unit B" autoFocus className="text-lg h-12" />
+                            <Input value={newHomeNumber} onChange={(e) => setNewHomeNumber(e.target.value)} placeholder="e.g. 101 or Unit B" autoFocus className="text-lg h-12" />
                           </div>
                           <div>
                             <Label>Resident Name</Label>
