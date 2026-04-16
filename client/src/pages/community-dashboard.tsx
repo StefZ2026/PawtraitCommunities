@@ -313,7 +313,7 @@ export default function CommunityDashboard() {
                           >
                             {addResidentMutation.isPending
                               ? (sendingEmail ? "Sending email invite..." : "Sending text invite...")
-                              : (sendingEmail ? "Sending Email Invite" : "Sending Text Invite")
+                              : (sendingEmail ? "Send Email Invite" : "Send Text Invite")
                             }
                           </Button>
                         </div>
