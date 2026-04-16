@@ -80,7 +80,8 @@ export function registerSmsRoutes(app: Express): void {
       const { phone, residentName, communityName, communityCode } = req.body;
       if (!phone || !communityCode) return res.status(400).json({ error: "Phone and community code are required" });
 
-      const message = `Hi${residentName ? ` ${residentName}` : ''}! You're invited to join ${communityName || 'your community'} on Pawtrait Communities! Get a free AI portrait of your pet in 50+ stunning styles. Join here: https://pawtraitcommunities.com/join?code=${communityCode}`;
+      const joinUrl = `https://pawtraitcommunities.com/join?code=${communityCode}&p=${encodeURIComponent(phone)}`;
+      const message = `Hi${residentName ? ` ${residentName}` : ''}! You're invited to join ${communityName || 'your community'} on Pawtrait Communities! Get a free AI portrait of your pet in 50+ stunning styles. Join here: ${joinUrl}`;
 
       const result = await sendSms(phone, message);
       if (result.success) {
@@ -104,7 +105,7 @@ export function registerSmsRoutes(app: Express): void {
       const RESEND_KEY = process.env.RESEND_API_KEY;
       if (!RESEND_KEY) return res.status(503).json({ error: "Email not configured" });
 
-      const joinUrl = `https://pawtraitcommunities.com/join?code=${communityCode}`;
+      const joinUrl = `https://pawtraitcommunities.com/join?code=${communityCode}&e=${encodeURIComponent(email)}`;
 
       const emailRes = await fetch("https://api.resend.com/emails", {
         method: "POST",

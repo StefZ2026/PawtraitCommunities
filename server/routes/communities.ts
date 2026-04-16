@@ -372,7 +372,8 @@ export function registerCommunityRoutes(app: Express): void {
   });
 
   // Lookup: Check if admin already added this person (by email or phone) — returns pre-filled data
-  app.post("/api/communities/lookup-resident", isAuthenticated, async (req: any, res: Response) => {
+  // Public endpoint — only returns name, home#, contact. No sensitive data.
+  app.post("/api/communities/lookup-resident", async (req: any, res: Response) => {
     try {
       const { communityId, email, phone } = req.body;
       if (!communityId) return res.status(400).json({ error: "communityId required" });

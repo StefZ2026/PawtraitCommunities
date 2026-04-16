@@ -57,11 +57,18 @@ export default function JoinCommunity() {
   const [accountPassword, setAccountPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Pre-fill code from URL param
+  // Pre-fill from URL params (code, email, phone)
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePhone, setInvitePhone] = useState("");
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
+    const e = params.get("e");
+    const p = params.get("p");
     if (code) setCommunityCode(code.toUpperCase());
+    if (e) { setInviteEmail(e); setAccountEmail(e); setEmail(e); }
+    if (p) { setInvitePhone(p); setPhone(p); }
   }, []);
 
   async function validateCode() {
@@ -78,7 +85,40 @@ export default function JoinCommunity() {
       }
       setCommunityName(data.communityName);
       setCommunityId(data.communityId);
-      // If already logged in, skip account creation — go look up resident
+
+      // Look up resident by invite params (email or phone from the invite link)
+      const params = new URLSearchParams(window.location.search);
+      const urlEmail = params.get("e") || "";
+      const urlPhone = params.get("p") || "";
+
+      if (urlEmail || urlPhone) {
+        // We know who they are from the invite link — look them up now
+        try {
+          const lookupRes = await fetch("/api/communities/lookup-resident", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ communityId: data.communityId, email: urlEmail, phone: urlPhone }),
+          });
+          if (lookupRes.ok) {
+            const lookupData = await lookupRes.json();
+            if (lookupData.found) {
+              if (lookupData.displayName) {
+                const parts = lookupData.displayName.split(" ");
+                setFirstName(parts[0] || "");
+                setLastName(parts.slice(1).join(" ") || "");
+              }
+              if (lookupData.homeNumber) setHomeNumber(lookupData.homeNumber);
+              if (lookupData.phone) setPhone(lookupData.phone);
+              if (lookupData.email) { setEmail(lookupData.email); setAccountEmail(lookupData.email); }
+              setWasPreFilled(true);
+              setStep("confirm");
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      // No invite params or no match — check if already logged in
       if (isAuthenticated) {
         await lookupAndPrefill(data.communityId, session?.user?.email || "");
       } else {
@@ -141,17 +181,19 @@ export default function JoinCommunity() {
       const { error } = await supabase.auth.signInWithPassword({ email: accountEmail, password: accountPassword });
       if (error) throw error;
 
-      // Pre-fill from admin's record + set email
       setEmail(accountEmail);
+      // If we already have pre-filled data, go straight to pets
+      if (wasPreFilled) { setStep("petCount"); return; }
+      // Otherwise try to look up
       await lookupAndPrefill(communityId!, accountEmail);
-      return; // lookupAndPrefill sets the step
+      return;
     } catch (error: any) {
-      // If account already exists, try logging in
       if (error.message?.includes("already") || error.message?.includes("exists")) {
         try {
           const { error: loginErr } = await supabase.auth.signInWithPassword({ email: accountEmail, password: accountPassword });
           if (loginErr) throw loginErr;
           setEmail(accountEmail);
+          if (wasPreFilled) { setStep("petCount"); return; }
           await lookupAndPrefill(communityId!, accountEmail);
           return;
         } catch {
@@ -436,9 +478,15 @@ export default function JoinCommunity() {
                 size="lg"
                 className="w-full h-14 text-base gap-2"
                 disabled={!firstName.trim() || !homeNumber.trim()}
-                onClick={() => setStep("petCount")}
+                onClick={() => {
+                  // If they have an email, pre-fill the account email
+                  if (email && !accountEmail) setAccountEmail(email);
+                  // If already logged in, skip account creation and go to pets
+                  if (isAuthenticated) { setStep("petCount"); }
+                  else { setStep("account"); }
+                }}
               >
-                Looks Good — Let's Add My Pets <ArrowRight className="h-4 w-4" />
+                Looks Good — Continue <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           )}
