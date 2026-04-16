@@ -332,7 +332,7 @@ export default function ResidentDashboard() {
                 <h3 className="text-xl font-serif font-bold mb-2">Turn Your Portraits into a Custom Calendar</h3>
                 <p className="text-muted-foreground mb-4">12 months of beautiful AI portraits — printed on premium paper and shipped to your door</p>
                 <Button size="lg" className="gap-2 text-lg h-14 px-8" asChild>
-                  <Link href="/calendar/new"><Sparkles className="h-5 w-5" />Create My Calendar — $75</Link>
+                  <Link href="/calendar/new"><Sparkles className="h-5 w-5" />Create My Calendar</Link>
                 </Button>
               </CardContent>
             </Card>
