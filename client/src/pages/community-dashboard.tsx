@@ -185,8 +185,8 @@ export default function CommunityDashboard() {
                 <p className="text-3xl font-mono font-bold tracking-widest text-primary">{community.communityCode}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => copyToClipboard(joinUrl, "Join link")}><Copy className="h-4 w-4 mr-1" />Copy Link</Button>
-                <Button variant="outline" size="sm" onClick={() => copyToClipboard(community.communityCode, "Code")}><Copy className="h-4 w-4 mr-1" />Copy Code</Button>
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(joinUrl, "Join link")}><Copy className="h-4 w-4 mr-1" />Copy Join Link</Button>
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(community.communityCode, "Code")}><Copy className="h-4 w-4 mr-1" />Copy Code Only</Button>
               </div>
             </div>
           </CardContent>
@@ -194,7 +194,7 @@ export default function CommunityDashboard() {
 
         {/* Tabs: Residents, Invites, Orders, Earnings */}
         <Tabs defaultValue="residents" className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-4 w-full relative z-10">
             <TabsTrigger value="residents">Residents</TabsTrigger>
             <TabsTrigger value="invites">Invite & Communicate</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
