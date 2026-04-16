@@ -68,4 +68,72 @@ export function registerSmsRoutes(app: Express): void {
       res.status(500).json({ error: "Failed to send broadcast" });
     }
   });
+
+  // Send invite SMS to a resident
+  app.post("/api/sms/send-invite", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      if (!isSmsConfigured()) return res.status(503).json({ error: "SMS not configured" });
+      const { phone, residentName, communityName, communityCode } = req.body;
+      if (!phone || !communityCode) return res.status(400).json({ error: "Phone and community code are required" });
+
+      const message = `Hi${residentName ? ` ${residentName}` : ''}! You're invited to join ${communityName || 'your community'} on Pawtrait Communities! Get a free AI portrait of your pet in 50+ stunning styles. Join here: https://pawtraitcommunities.com/join?code=${communityCode}`;
+
+      const result = await sendSms(phone, message);
+      if (result.success) {
+        console.log(`[sms] Invite sent to ${phone} for ${communityCode}`);
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ error: "Failed to send invite" });
+      }
+    } catch (err: any) {
+      console.error("[sms] Invite error:", err.message);
+      res.status(500).json({ error: "Failed to send invite" });
+    }
+  });
+
+  // Send invite email to a resident
+  app.post("/api/email/send-invite", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { email, residentName, communityName, communityCode } = req.body;
+      if (!email || !communityCode) return res.status(400).json({ error: "Email and community code are required" });
+
+      const joinUrl = `https://pawtraitcommunities.com/join?code=${communityCode}`;
+
+      // Use Supabase auth admin to send email (leverages Supabase's built-in email infrastructure)
+      // For now, use a simple fetch to a transactional email API
+      // Fallback: use Supabase's invite method
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !supabaseServiceKey) {
+        return res.status(503).json({ error: "Email not configured" });
+      }
+
+      // Use Supabase Edge Function or direct SMTP — for now, use Supabase's built-in magic link as invite
+      // Alternative: Resend API
+      // For MVP: use Supabase's auth.admin.inviteUserByEmail which sends a proper email
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Send invite via Supabase auth — this sends an email with a magic link
+      const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+        data: { communityCode, communityName, residentName },
+        redirectTo: joinUrl,
+      });
+
+      if (error) {
+        console.error("[email] Supabase invite error:", error.message);
+        // If user already exists, just send a notification that they should join
+        if (error.message.includes("already been registered")) {
+          return res.json({ success: true, note: "User already has an account — they can join directly with the code" });
+        }
+        return res.status(500).json({ error: "Failed to send invite email" });
+      }
+
+      console.log(`[email] Invite sent to ${email} for ${communityCode}`);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[email] Invite error:", err.message);
+      res.status(500).json({ error: "Failed to send invite email" });
+    }
+  });
 }

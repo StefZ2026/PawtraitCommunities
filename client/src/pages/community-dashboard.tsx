@@ -255,17 +255,35 @@ export default function CommunityDashboard() {
                           <p className="text-muted-foreground text-center">{newDisplayName || `Home #${newHomeNumber}`} has been added. How would you like to send them the invite?</p>
                           <div className="space-y-2">
                             {newEmail && (
-                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" asChild>
-                                <a href={`mailto:${newEmail}?subject=${encodeURIComponent(`Join ${community?.name} on Pawtrait Communities!`)}&body=${encodeURIComponent(`Hi ${newDisplayName || 'neighbor'}!\n\nYou're invited to join ${community?.name} on Pawtrait Communities! Get a free AI portrait of your pet in 50+ stunning styles.\n\nClick here to join: https://pawtraitcommunities.com/join?code=${community?.communityCode}\n\nYour code: ${community?.communityCode}`)}`}>
-                                  <Mail className="h-5 w-5" />Send Email to {newEmail}
-                                </a>
+                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" onClick={async () => {
+                                try {
+                                  const res = await fetch("/api/email/send-invite", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                                    body: JSON.stringify({ email: newEmail, residentName: newDisplayName, communityName: community?.name, communityCode: community?.communityCode }),
+                                  });
+                                  const data = await res.json();
+                                  if (res.ok) toast({ title: "Email sent!", description: data.note || `Invite sent to ${newEmail}` });
+                                  else toast({ title: "Error", description: data.error || "Failed to send email", variant: "destructive" });
+                                } catch { toast({ title: "Error", description: "Failed to send email", variant: "destructive" }); }
+                              }}>
+                                <Mail className="h-5 w-5" />Send Email to {newEmail}
                               </Button>
                             )}
                             {newPhone && (
-                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" asChild>
-                                <a href={`sms:${newPhone}?body=${encodeURIComponent(`Hi ${newDisplayName || 'neighbor'}! You're invited to join ${community?.name} on Pawtrait Communities. Get a free AI portrait of your pet! Join here: https://pawtraitcommunities.com/join?code=${community?.communityCode}`)}`}>
-                                  <MessageSquare className="h-5 w-5" />Send Text to {newPhone}
-                                </a>
+                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" onClick={async () => {
+                                try {
+                                  const res = await fetch("/api/sms/send-invite", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                                    body: JSON.stringify({ phone: newPhone, residentName: newDisplayName, communityName: community?.name, communityCode: community?.communityCode }),
+                                  });
+                                  const data = await res.json();
+                                  if (res.ok) toast({ title: "Text sent!", description: `Invite sent to ${newPhone}` });
+                                  else toast({ title: "Error", description: data.error || "Failed to send text", variant: "destructive" });
+                                } catch { toast({ title: "Error", description: "Failed to send text", variant: "destructive" }); }
+                              }}>
+                                <MessageSquare className="h-5 w-5" />Send Text to {newPhone}
                               </Button>
                             )}
                             {!newEmail && !newPhone && (
