@@ -8,6 +8,8 @@ import { generateGroupPortrait, isGroupPortraitConfigured } from "../group-portr
 import { uploadToStorage, isDataUri } from "../image-storage";
 import { getCalendarStyles, getCalendarPrompt, type CalendarStyle } from "../../client/src/lib/calendar-styles";
 import { isStripeConfigured, getStripe } from "../stripe";
+import { generateCalendarPDF, createCollageCover } from "../calendar-pdf";
+import { createCalendarOrder, isGelatoConfigured } from "../gelato";
 import rateLimit from "express-rate-limit";
 
 const calendarLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, keyGenerator: (req: any) => req.user?.claims?.sub || "anon" });
@@ -155,8 +157,44 @@ export function registerCalendarRoutes(app: Express): void {
       if (remaining <= 0) return res.status(400).json({ error: "Generation limit reached. Maximum " + cal.max_generations + " images." });
 
       const toGenerate = Math.min(6, remaining);
-      // TODO: Pick additional styles not yet generated
-      res.json({ status: "regenerating", count: toGenerate, remaining: remaining - toGenerate });
+
+      const petIds = JSON.parse(cal.pet_ids || "[]");
+      const pets = await pool.query("SELECT id, name, species, breed, original_photo_url FROM dogs WHERE id = ANY($1)", [petIds]);
+      if (pets.rows.length === 0) return res.status(400).json({ error: "No pets found" });
+      const primaryPet = pets.rows[0];
+      const species = primaryPet.species || "dog";
+      const breed = primaryPet.breed || species;
+
+      // Get wild card styles not yet used
+      const existingImages = await pool.query("SELECT style_id FROM calendar_project_images WHERE calendar_project_id = $1", [projectId]);
+      const usedStyleIds = new Set(existingImages.rows.map((r: any) => r.style_id));
+      const allStyles = getCalendarStyles(species as "dog" | "cat", cal.birthday_month || undefined);
+      const unusedStyles = allStyles.filter(s => !usedStyleIds.has(s.name)).slice(0, toGenerate);
+
+      await pool.query("UPDATE calendar_projects SET status = 'generating' WHERE id = $1", [projectId]);
+      res.json({ status: "regenerating", count: unusedStyles.length, remaining: remaining - unusedStyles.length });
+
+      // Background generation
+      let generated = 0;
+      for (const style of unusedStyles) {
+        try {
+          const prompt = getCalendarPrompt(style, species as "dog" | "cat", breed);
+          const imageUrl = await generatePortrait(prompt, primaryPet.original_photo_url);
+          let finalUrl = imageUrl;
+          if (isDataUri(imageUrl)) {
+            const fname = `calendar-${projectId}-regen-${style.name.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}.png`;
+            finalUrl = await uploadToStorage(imageUrl, "portraits", fname);
+          }
+          await pool.query(
+            `INSERT INTO calendar_project_images (calendar_project_id, image_type, image_url, style_id, month_assignment, sort_order)
+             VALUES ($1, 'wildcard', $2, $3, NULL, $4)`,
+            [projectId, finalUrl, style.name, cal.total_generations + generated]
+          );
+          generated++;
+          await pool.query("UPDATE calendar_projects SET total_generations = total_generations + 1, generated_image_count = generated_image_count + 1 WHERE id = $1", [projectId]);
+        } catch (e: any) { console.error(`[calendar] Regen failed for ${style.name}:`, e.message); }
+      }
+      await pool.query("UPDATE calendar_projects SET status = 'selecting' WHERE id = $1", [projectId]);
     } catch (err: any) {
       res.status(500).json({ error: "Failed to regenerate" });
     }
@@ -313,10 +351,59 @@ export function registerCalendarRoutes(app: Express): void {
       }
 
       await pool.query("UPDATE calendar_projects SET status = 'ordered' WHERE id = $1", [projectId]);
-
-      // TODO: Trigger PDF generation + Gelato order (Task 5 & 6)
-      console.log(`[calendar] Order confirmed for project ${projectId}`);
       res.json({ status: "ordered", projectId });
+
+      // Background: generate PDF and submit to Gelato
+      try {
+        // Get selected images assigned to months
+        const imgs = await pool.query(
+          "SELECT * FROM calendar_project_images WHERE calendar_project_id = $1 AND month_assignment IS NOT NULL ORDER BY month_assignment",
+          [projectId]
+        );
+        const monthImages = imgs.rows.map((img: any) => ({ imageUrl: img.image_url, month: img.month_assignment }));
+
+        // Cover
+        let coverImage = null;
+        if (cal.cover_type === "single" && cal.cover_image_id) {
+          const cImg = imgs.rows.find((r: any) => r.id === cal.cover_image_id) ||
+            await pool.query("SELECT image_url FROM calendar_project_images WHERE id = $1", [cal.cover_image_id]).then(r => r.rows[0]);
+          if (cImg) coverImage = { imageUrl: cImg.image_url, type: "single" };
+        } else {
+          coverImage = { imageUrl: monthImages[0]?.imageUrl || "", type: "collage" };
+        }
+
+        // Get pet name
+        const petResult = await pool.query("SELECT name FROM dogs WHERE id = $1", [cal.dog_id]);
+        const petName = petResult.rows[0]?.name;
+
+        // Generate PDF
+        const pdfBuffer = await generateCalendarPDF(
+          monthImages, coverImage, cal.calendar_name || "Custom Pet Calendar",
+          cal.calendar_year, cal.start_month || 1, petName
+        );
+
+        // Upload PDF to storage
+        const pdfName = `calendar-${projectId}-${Date.now()}.pdf`;
+        const pdfUrl = await uploadToStorage(
+          `data:application/pdf;base64,${pdfBuffer.toString("base64")}`,
+          "portraits", pdfName
+        );
+        await pool.query("UPDATE calendar_projects SET pdf_url = $1 WHERE id = $2", [pdfUrl, projectId]);
+        console.log(`[calendar] PDF generated for project ${projectId}: ${pdfUrl}`);
+
+        // Submit to Gelato if configured
+        if (isGelatoConfigured() && session.customer_details) {
+          const cd = session.customer_details;
+          const addr = cd.address || {};
+          const nameParts = (cd.name || "").split(" ");
+          await createCalendarOrder(
+            { firstName: nameParts[0] || "", lastName: nameParts.slice(1).join(" ") || ".", addressLine1: addr.line1 || "", city: addr.city || "", state: addr.state || "", postCode: addr.postal_code || "", country: addr.country || "US", email: cd.email || "" },
+            pdfUrl, 26, projectId
+          );
+        }
+      } catch (bgErr: any) {
+        console.error(`[calendar] Background PDF/Gelato error for project ${projectId}:`, bgErr.message);
+      }
     } catch (err: any) {
       console.error("[calendar] Confirm error:", err.message);
       res.status(500).json({ error: "Failed to confirm order" });

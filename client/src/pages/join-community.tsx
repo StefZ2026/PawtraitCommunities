@@ -335,7 +335,7 @@ export default function JoinCommunity() {
               <Input
                 value={communityCode}
                 onChange={(e) => setCommunityCode(e.target.value.toUpperCase())}
-                placeholder="e.g. SOLEIL-26"
+                placeholder="e.g. COMMUNITY-26"
                 className="text-center text-lg tracking-wider"
                 required
               />
@@ -485,7 +485,7 @@ export default function JoinCommunity() {
               </div>
               <div>
                 <Label>Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="barbara@email.com" />
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com" />
               </div>
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep("home")} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
