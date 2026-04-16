@@ -50,6 +50,9 @@ export function registerSmsRoutes(app: Express): void {
       const { orgId, message } = req.body;
       if (!orgId || !message) return res.status(400).json({ error: "orgId and message required" });
 
+      const orgResult = await pool.query("SELECT name FROM organizations WHERE id = $1", [orgId]);
+      const communityName = orgResult.rows[0]?.name || "";
+
       const residents = await pool.query(
         "SELECT id, phone, display_name FROM residents WHERE organization_id = $1 AND is_active = true AND phone IS NOT NULL",
         [orgId]
@@ -57,7 +60,8 @@ export function registerSmsRoutes(app: Express): void {
 
       let sent = 0, failed = 0;
       for (const r of residents.rows) {
-        const result = await sendSms(r.phone, message);
+        const fullMessage = communityName ? `${communityName}: ${message}` : message;
+        const result = await sendSms(r.phone, fullMessage);
         if (result.success) sent++;
         else failed++;
       }
