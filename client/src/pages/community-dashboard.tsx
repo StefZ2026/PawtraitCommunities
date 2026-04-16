@@ -523,7 +523,11 @@ export default function CommunityDashboard() {
                       <li>Your portrait is ready in under a minute!</li></ul>
                       <p class="url">pawtraitcommunities.com</p></body></html>`);
                       flyer.document.close();
-                      flyer.print();
+                      // Wait for all images to load before printing
+                      const imgs = flyer.document.querySelectorAll("img");
+                      let loaded = 0;
+                      const tryPrint = () => { loaded++; if (loaded >= imgs.length) setTimeout(() => flyer.print(), 200); };
+                      imgs.forEach((img: any) => { if (img.complete) tryPrint(); else { img.onload = tryPrint; img.onerror = tryPrint; } });
                     }
                   }}><Printer className="h-4 w-4 mr-1" />Print Flyer</Button>
                 </CardContent>
