@@ -273,7 +273,7 @@ export default function CommunityDashboard() {
                           </div>
                           <div>
                             <Label>Resident Name</Label>
-                            <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Sandy Schnee" className="text-lg h-12" />
+                            <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Sarah Jones" className="text-lg h-12" />
                           </div>
                           {(commPref === "email" || commPref === "both") && (
                             <div>
