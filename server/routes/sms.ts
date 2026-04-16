@@ -91,45 +91,54 @@ export function registerSmsRoutes(app: Express): void {
     }
   });
 
-  // Send invite email to a resident
+  // Send invite email to a resident via Resend
   app.post("/api/email/send-invite", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { email, residentName, communityName, communityCode } = req.body;
       if (!email || !communityCode) return res.status(400).json({ error: "Email and community code are required" });
 
+      const RESEND_KEY = process.env.RESEND_API_KEY;
+      if (!RESEND_KEY) return res.status(503).json({ error: "Email not configured" });
+
       const joinUrl = `https://pawtraitcommunities.com/join?code=${communityCode}`;
 
-      // Use Supabase auth admin to send email (leverages Supabase's built-in email infrastructure)
-      // For now, use a simple fetch to a transactional email API
-      // Fallback: use Supabase's invite method
-      const supabaseUrl = process.env.SUPABASE_URL;
-      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(503).json({ error: "Email not configured" });
-      }
-
-      // Use Supabase Edge Function or direct SMTP — for now, use Supabase's built-in magic link as invite
-      // Alternative: Resend API
-      // For MVP: use Supabase's auth.admin.inviteUserByEmail which sends a proper email
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-      // Send invite via Supabase auth — this sends an email with a magic link
-      const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
-        data: { communityCode, communityName, residentName },
-        redirectTo: joinUrl,
+      const emailRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: `${communityName || "Pawtrait Communities"} <noreply@pawtraitcommunities.com>`,
+          to: [email],
+          subject: `You're invited to join ${communityName || "your community"} on Pawtrait Communities!`,
+          html: `
+            <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #FFFAF5;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #E8751E; font-size: 28px; margin: 0;">Pawtrait Communities</h1>
+                <h2 style="font-size: 22px; margin: 8px 0 0 0;">${communityName || "Your Community"}</h2>
+              </div>
+              <p style="font-size: 16px; color: #333;">Hi${residentName ? ` ${residentName}` : ""}!</p>
+              <p style="font-size: 16px; color: #333;">You're invited to join <strong>${communityName}</strong> on Pawtrait Communities! Get a free AI portrait of your pet in 50+ stunning styles.</p>
+              <div style="background: #FFF3E0; padding: 20px; border-radius: 12px; text-align: center; margin: 24px 0;">
+                <p style="font-size: 14px; color: #666; margin: 0 0 8px 0;">Your community code:</p>
+                <p style="font-size: 36px; font-family: monospace; color: #E8751E; font-weight: bold; letter-spacing: 4px; margin: 0;">${communityCode}</p>
+              </div>
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="${joinUrl}" style="display: inline-block; background: #E8751E; color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-size: 18px; font-weight: bold;">Join Now</a>
+              </div>
+              <p style="font-size: 14px; color: #666; text-align: center;">Or go to <strong>pawtraitcommunities.com/join</strong> and enter the code above.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+              <p style="font-size: 12px; color: #999; text-align: center;">pawtraitcommunities.com</p>
+            </div>
+          `,
+        }),
       });
 
-      if (error) {
-        console.error("[email] Supabase invite error:", error.message);
-        // If user already exists, just send a notification that they should join
-        if (error.message.includes("already been registered")) {
-          return res.json({ success: true, note: "User already has an account — they can join directly with the code" });
-        }
+      const emailData = await emailRes.json();
+      if (!emailRes.ok) {
+        console.error("[email] Resend error:", JSON.stringify(emailData));
         return res.status(500).json({ error: "Failed to send invite email" });
       }
 
-      console.log(`[email] Invite sent to ${email} for ${communityCode}`);
+      console.log(`[email] Invite sent to ${email} for ${communityCode} via Resend`);
       res.json({ success: true });
     } catch (err: any) {
       console.error("[email] Invite error:", err.message);

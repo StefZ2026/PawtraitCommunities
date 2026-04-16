@@ -6,8 +6,16 @@ export function isSmsConfigured(): boolean {
   return !!TELNYX_API_KEY;
 }
 
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return `+${digits}`;
+}
+
 export async function sendSms(to: string, body: string, mediaUrl?: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
   if (!TELNYX_API_KEY) return { success: false, error: "SMS not configured" };
+  to = normalizePhone(to);
 
   try {
     const payload: any = {
