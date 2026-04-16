@@ -241,11 +241,11 @@ export default function JoinCommunity() {
             <div className="space-y-4">
               <div>
                 <Label>First Name</Label>
-                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="e.g. Barbara" autoFocus />
+                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="e.g. Sarah" autoFocus />
               </div>
               <div>
                 <Label>Last Name</Label>
-                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="e.g. Schnee" />
+                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="e.g. Jones" />
               </div>
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep("code")} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>

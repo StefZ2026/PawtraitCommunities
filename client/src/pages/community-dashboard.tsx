@@ -225,7 +225,7 @@ export default function CommunityDashboard() {
                       <>
                         <DialogHeader><DialogTitle>What's the resident's name?</DialogTitle></DialogHeader>
                         <div className="space-y-4">
-                          <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Barbara Schnee" autoFocus className="text-lg h-12" />
+                          <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Sarah Jones" autoFocus className="text-lg h-12" />
                           <div className="flex gap-2">
                             <Button variant="outline" onClick={() => setAddResStep("home")}>Back</Button>
                             <Button size="lg" className="flex-1 text-base" onClick={() => setAddResStep("contact")}>Next</Button>

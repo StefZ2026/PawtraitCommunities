@@ -7,6 +7,7 @@ import { registerPortraitRoutes } from "./routes/portraits";
 import { registerBillingRoutes } from "./routes/billing";
 import { registerMerchRoutes } from "./routes/merch";
 import { registerSmsRoutes } from "./routes/sms";
+import { registerCalendarRoutes } from "./routes/calendar";
 
 const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000, max: 600,
@@ -24,5 +25,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   registerBillingRoutes(app);
   registerMerchRoutes(app);
   registerSmsRoutes(app);
+  registerCalendarRoutes(app);
   return httpServer;
 }
