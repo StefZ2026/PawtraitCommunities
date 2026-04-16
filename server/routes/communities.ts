@@ -167,12 +167,13 @@ export function registerCommunityRoutes(app: Express): void {
         const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
         if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
       }
+      const showArchived = req.query.archived === "true";
       const residents = await pool.query(
-        `SELECT r.id, r.home_number, r.display_name, r.email, r.phone, r.role, r.created_at,
+        `SELECT r.id, r.home_number, r.display_name, r.email, r.phone, r.role, r.created_at, r.archived_at,
          (SELECT COUNT(*) FROM dogs WHERE resident_id = r.id) as pet_count,
          (SELECT COUNT(*) FROM portraits p JOIN dogs d ON p.dog_id = d.id WHERE d.resident_id = r.id) as portrait_count
-         FROM residents r WHERE r.organization_id = $1 AND r.is_active = true ORDER BY r.created_at DESC`,
-        [orgId]
+         FROM residents r WHERE r.organization_id = $1 AND r.is_active = $2 ORDER BY r.created_at DESC`,
+        [orgId, !showArchived]
       );
       res.json(residents.rows);
     } catch (error: any) { res.status(500).json({ error: "Failed to load residents" }); }
@@ -285,6 +286,24 @@ export function registerCommunityRoutes(app: Express): void {
       console.log(`[community] Archived resident ${residentId} in org ${orgId}`);
       res.json({ success: true });
     } catch (error: any) { res.status(500).json({ error: "Failed to archive resident" }); }
+  });
+
+  // Community: Restore an archived resident
+  app.post("/api/community/:orgId/residents/:residentId/restore", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const residentId = parseInt(req.params.residentId);
+      const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
+      const isAdminUser = userEmail === ADMIN_EMAIL;
+      if (!isAdminUser) {
+        const orgCheck = await pool.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [orgId, userId]);
+        if (orgCheck.rows.length === 0) return res.status(403).json({ error: "Access denied" });
+      }
+      await pool.query("UPDATE residents SET is_active = true, archived_at = NULL WHERE id = $1 AND organization_id = $2", [residentId, orgId]);
+      console.log(`[community] Restored resident ${residentId} in org ${orgId}`);
+      res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ error: "Failed to restore resident" }); }
   });
 
   // Admin: Edit community

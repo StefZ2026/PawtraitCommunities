@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Copy, Users, Dog, Image, ExternalLink, Mail,
+  Copy, Users, Dog, Image, ExternalLink, Mail, Archive, RotateCcw,
   Check, Printer, MessageSquare, Plus, DollarSign, ShoppingBag, Wallet,
   ChevronRight, Home as HomeIcon
 } from "lucide-react";
@@ -56,6 +56,16 @@ export default function CommunityDashboard() {
     },
     enabled: !!token && !!communityId,
   });
+
+  const { data: archivedResidents = [] } = useQuery({
+    queryKey: ["/api/community/residents/archived", communityId],
+    queryFn: async () => {
+      const res = await fetch(`/api/community/${communityId}/residents?archived=true`, { headers: { Authorization: `Bearer ${token}` } });
+      return res.ok ? res.json() : [];
+    },
+    enabled: !!token && !!communityId,
+  });
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: orders = [] } = useQuery({
     queryKey: ["/api/community/orders", communityId],
@@ -311,17 +321,33 @@ export default function CommunityDashboard() {
                           <th className="pb-3 font-medium text-center"><Dog className="h-4 w-4 inline" /></th>
                           <th className="pb-3 font-medium text-center"><Image className="h-4 w-4 inline" /></th>
                           <th className="pb-3 font-medium">Joined</th>
+                          <th className="pb-3 font-medium"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {residents.map((r: any) => (
-                          <tr key={r.id} className="border-b last:border-0 cursor-pointer hover:bg-muted/50" onClick={() => setLocation(`/community/${communityId}/resident/${r.id}`)}>
-                            <td className="py-3 font-medium">{r.home_number}</td>
-                            <td className="py-3 text-primary font-medium">{r.display_name || "—"}</td>
+                          <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50">
+                            <td className="py-3 font-medium cursor-pointer" onClick={() => setLocation(`/community/${communityId}/resident/${r.id}`)}>{r.home_number}</td>
+                            <td className="py-3 text-primary font-medium cursor-pointer" onClick={() => setLocation(`/community/${communityId}/resident/${r.id}`)}>{r.display_name || "—"}</td>
                             <td className="py-3 text-sm text-muted-foreground">{r.email || "—"}</td>
                             <td className="py-3 text-center">{r.pet_count}</td>
                             <td className="py-3 text-center">{r.portrait_count}</td>
                             <td className="py-3 text-sm text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
+                            <td className="py-3">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Archive resident" onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Archive ${r.display_name || 'this resident'}? They'll be hidden but data is preserved.`)) return;
+                                try {
+                                  await fetch(`/api/community/${communityId}/residents/${r.id}/archive`, {
+                                    method: "POST", headers: { Authorization: `Bearer ${token}` },
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ["/api/community/residents", communityId] });
+                                  toast({ title: "Archived", description: `${r.display_name || 'Resident'} has been archived.` });
+                                } catch { toast({ title: "Error", description: "Failed to archive", variant: "destructive" }); }
+                              }}>
+                                <Archive className="h-4 w-4" />
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -330,6 +356,74 @@ export default function CommunityDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Archived residents */}
+            {archivedResidents.length > 0 && (
+              <div className="mt-4">
+                <button className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1" onClick={() => setShowArchived(!showArchived)}>
+                  <Archive className="h-4 w-4" />{showArchived ? "Hide" : "Show"} Archived Residents ({archivedResidents.length})
+                </button>
+                {showArchived && (
+                  <Card className="mt-2 border-dashed">
+                    <CardContent className="pt-4">
+                      <table className="w-full">
+                        <tbody>
+                          {archivedResidents.map((r: any) => (
+                            <tr key={r.id} className="border-b last:border-0">
+                              <td className="py-2 text-sm text-muted-foreground">Home #{r.home_number}</td>
+                              <td className="py-2 text-sm text-muted-foreground">{r.display_name || "—"}</td>
+                              <td className="py-2 text-sm text-muted-foreground">{r.email || "—"}</td>
+                              <td className="py-2">
+                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={async () => {
+                                  try {
+                                    await fetch(`/api/community/${communityId}/residents/${r.id}/restore`, {
+                                      method: "POST", headers: { Authorization: `Bearer ${token}` },
+                                    });
+                                    queryClient.invalidateQueries({ queryKey: ["/api/community/residents", communityId] });
+                                    queryClient.invalidateQueries({ queryKey: ["/api/community/residents/archived", communityId] });
+                                    toast({ title: "Restored", description: `${r.display_name || 'Resident'} is active again.` });
+                                  } catch { toast({ title: "Error", description: "Failed to restore", variant: "destructive" }); }
+                                }}>
+                                  <RotateCcw className="h-3 w-3" />Restore
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* New Signups This Month */}
+            {(() => {
+              const now = new Date();
+              const thisMonthResidents = residents.filter((r: any) => {
+                const created = new Date(r.created_at);
+                return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+              });
+              if (thisMonthResidents.length === 0) return null;
+              return (
+                <Card className="mt-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2"><Users className="h-5 w-5 text-primary" />New Signups This Month — {thisMonthResidents.length}</CardTitle>
+                    <p className="text-sm text-muted-foreground">Please verify these are actual residents</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {thisMonthResidents.map((r: any) => (
+                        <div key={r.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm">
+                          <span>Home #{r.home_number} — <strong>{r.display_name || "No name"}</strong></span>
+                          <span className="text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </TabsContent>
 
           {/* Invites Tab */}
