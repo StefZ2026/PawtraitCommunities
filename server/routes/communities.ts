@@ -349,6 +349,43 @@ export function registerCommunityRoutes(app: Express): void {
     } catch (error: any) { res.status(500).json({ error: "Validation failed" }); }
   });
 
+  // Lookup: Check if admin already added this person (by email or phone) — returns pre-filled data
+  app.post("/api/communities/lookup-resident", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { communityId, email, phone } = req.body;
+      if (!communityId) return res.status(400).json({ error: "communityId required" });
+
+      const result = await pool.query(
+        `SELECT id, display_name, email, phone, home_number FROM residents
+         WHERE organization_id = $1 AND is_active = true
+         AND supabase_auth_id LIKE 'placeholder-%'
+         AND (
+           ($2 != '' AND email IS NOT NULL AND LOWER(email) = LOWER($2))
+           OR ($3 != '' AND phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, '-', ''), '(', ''), ')', ''), ' ', '') = REPLACE(REPLACE(REPLACE(REPLACE($3, '-', ''), '(', ''), ')', ''), ' ', ''))
+         )
+         LIMIT 1`,
+        [communityId, email || "", phone || ""]
+      );
+
+      if (result.rows.length > 0) {
+        const r = result.rows[0];
+        res.json({
+          found: true,
+          residentId: r.id,
+          displayName: r.display_name,
+          email: r.email,
+          phone: r.phone,
+          homeNumber: r.home_number,
+        });
+      } else {
+        res.json({ found: false });
+      }
+    } catch (error: any) {
+      console.error("Lookup error:", error.message);
+      res.status(500).json({ error: "Lookup failed" });
+    }
+  });
+
   // Resident: Register
   app.post("/api/communities/register", isAuthenticated, async (req: any, res: Response) => {
     try {

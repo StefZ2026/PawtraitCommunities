@@ -78,14 +78,46 @@ export default function JoinCommunity() {
       }
       setCommunityName(data.communityName);
       setCommunityId(data.communityId);
-      // If already logged in, skip account creation
+      // If already logged in, skip account creation — go look up resident
       if (isAuthenticated) {
-        setStep("name");
+        await lookupAndPrefill(data.communityId, session?.user?.email || "");
       } else {
         setStep("account");
       }
     } catch { toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" }); }
     finally { setLoading(false); }
+  }
+
+  // After login/signup, check if admin already added this person and pre-fill their info
+  async function lookupAndPrefill(commId: number, userEmail: string) {
+    try {
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      const tok = freshSession?.access_token || token;
+      if (!tok) { setStep("name"); return; }
+
+      const res = await fetch("/api/communities/lookup-resident", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+        body: JSON.stringify({ communityId: commId, email: userEmail, phone: "" }),
+      });
+      if (!res.ok) { setStep("name"); return; }
+      const data = await res.json();
+
+      if (data.found) {
+        // Pre-fill everything the admin entered
+        if (data.displayName) {
+          const parts = data.displayName.split(" ");
+          setFirstName(parts[0] || "");
+          setLastName(parts.slice(1).join(" ") || "");
+        }
+        if (data.homeNumber) setHomeNumber(data.homeNumber);
+        if (data.phone) setPhone(data.phone);
+        if (data.email) setEmail(data.email);
+      }
+    } catch {
+      // Non-critical — just proceed without pre-fill
+    }
+    setStep("name");
   }
 
   async function createAccount(e: React.FormEvent) {
@@ -106,9 +138,10 @@ export default function JoinCommunity() {
       const { error } = await supabase.auth.signInWithPassword({ email: accountEmail, password: accountPassword });
       if (error) throw error;
 
-      // Pre-fill email in contact step
+      // Pre-fill from admin's record + set email
       setEmail(accountEmail);
-      setStep("name");
+      await lookupAndPrefill(communityId!, accountEmail);
+      return; // lookupAndPrefill sets the step
     } catch (error: any) {
       // If account already exists, try logging in
       if (error.message?.includes("already") || error.message?.includes("exists")) {
@@ -116,7 +149,7 @@ export default function JoinCommunity() {
           const { error: loginErr } = await supabase.auth.signInWithPassword({ email: accountEmail, password: accountPassword });
           if (loginErr) throw loginErr;
           setEmail(accountEmail);
-          setStep("name");
+          await lookupAndPrefill(communityId!, accountEmail);
           return;
         } catch {
           toast({ title: "Account already exists", description: "That email is already registered. Check your password and try again.", variant: "destructive" });
