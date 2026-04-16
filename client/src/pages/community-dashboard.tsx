@@ -268,9 +268,9 @@ export default function CommunityDashboard() {
                                 </a>
                               </Button>
                             )}
-                            <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" onClick={() => copyToClipboard(`https://pawtraitcommunities.com/join?code=${community?.communityCode}`, "Invite link")}>
-                              <Copy className="h-5 w-5" />Copy Invite Link
-                            </Button>
+                            {!newEmail && !newPhone && (
+                              <p className="text-sm text-amber-600 text-center">No email or phone provided — go back and add one so we can send the invite.</p>
+                            )}
                           </div>
                           <Button className="w-full" onClick={() => setAddResidentOpen(false)}>Done</Button>
                         </div>
