@@ -73,3 +73,52 @@ export async function createCardOrder(
 export async function getOrderStatus(orderId: string): Promise<any> {
   return gelatoFetch(`/orders/${orderId}`);
 }
+
+// Wall calendar product UID for US letter size (11x8.5 folded, 11x17 open)
+const CALENDAR_PRODUCT_UID = "wall-calendars_pf_lt_pt_100-lb-cover-coated-silk_cl_4-4_bt_wire-o-top_hor";
+
+/**
+ * Create a calendar order on Gelato
+ * @param recipient - Shipping address
+ * @param pdfUrl - URL of the print-ready PDF
+ * @param pageCount - Number of pages (cover + months, e.g. 13 for full year)
+ * @param calendarProjectId - Our internal project ID for reference
+ */
+export async function createCalendarOrder(
+  recipient: GelatoRecipient,
+  pdfUrl: string,
+  pageCount: number = 26, // Gelato counts front+back per sheet
+  calendarProjectId: number
+): Promise<any> {
+  const order = await gelatoFetch("/orders", {
+    method: "POST",
+    body: JSON.stringify({
+      orderType: "order",
+      orderReferenceId: `comm-cal-${calendarProjectId}-${Date.now()}`,
+      customerReferenceId: `calendar-${calendarProjectId}`,
+      currency: "USD",
+      items: [{
+        itemReferenceId: `cal-${calendarProjectId}`,
+        productUid: CALENDAR_PRODUCT_UID,
+        pageCount,
+        quantity: 1,
+        files: [
+          { type: "default", url: pdfUrl },
+        ],
+      }],
+      shippingAddress: {
+        firstName: recipient.firstName,
+        lastName: recipient.lastName,
+        addressLine1: recipient.addressLine1,
+        city: recipient.city,
+        state: recipient.state,
+        postCode: recipient.postCode,
+        country: recipient.country,
+        email: recipient.email,
+      },
+    }),
+  });
+
+  console.log(`[gelato] Calendar order created: ${order.id} for project ${calendarProjectId}`);
+  return order;
+}
