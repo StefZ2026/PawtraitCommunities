@@ -50,6 +50,7 @@ export const organizations = pgTable("organizations", {
   billingZip: text("billing_zip"),
   billingCountry: text("billing_country"),
   speciesHandled: text("species_handled").default("both"),
+  communicationPreference: text("communication_preference").default("email"), // 'email' | 'text' | 'both'
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   ownerId: varchar("owner_id"),

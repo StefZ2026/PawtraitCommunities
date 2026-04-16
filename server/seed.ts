@@ -195,6 +195,9 @@ export async function seedDatabase() {
         await pool.query("ALTER TABLE merch_earnings ADD COLUMN IF NOT EXISTS community_share_cents INTEGER");
         await pool.query("ALTER TABLE merch_earnings ADD COLUMN IF NOT EXISTS platform_share_cents INTEGER");
 
+        // Organization extensions
+        await pool.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS communication_preference TEXT DEFAULT 'email'");
+
         // Calendar project extensions
         await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS start_month INTEGER DEFAULT 1");
         await pool.query("ALTER TABLE calendar_projects ADD COLUMN IF NOT EXISTS calendar_name TEXT");

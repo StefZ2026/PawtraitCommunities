@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
-type WizardStep = "code" | "account" | "name" | "home" | "contact" | "petCount" | "petDetail" | "household" | "homeTaken" | "nameConfirm" | "done";
+type WizardStep = "code" | "account" | "confirm" | "name" | "home" | "contact" | "petCount" | "petDetail" | "homeTaken" | "nameConfirm" | "done";
 
 export default function JoinCommunity() {
   const [, setLocation] = useLocation();
@@ -45,8 +45,8 @@ export default function JoinCommunity() {
   const [pets, setPets] = useState<Array<{ name: string; species: string; breed: string; photo: string | null }>>([]);
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
 
-  // Household name
-  const [householdName, setHouseholdName] = useState("");
+  // Pre-fill tracking (admin already added this person)
+  const [wasPreFilled, setWasPreFilled] = useState(false);
 
   // Name confirmation (when admin-entered name differs from what resident typed)
   const [existingName, setExistingName] = useState("");
@@ -113,6 +113,9 @@ export default function JoinCommunity() {
         if (data.homeNumber) setHomeNumber(data.homeNumber);
         if (data.phone) setPhone(data.phone);
         if (data.email) setEmail(data.email);
+        setWasPreFilled(true);
+        setStep("confirm");
+        return;
       }
     } catch {
       // Non-critical — just proceed without pre-fill
@@ -184,13 +187,11 @@ export default function JoinCommunity() {
     reader.readAsDataURL(file);
   }
 
-  function nextPetOrHousehold() {
+  function nextPetOrFinish() {
     if (currentPetIndex < pets.length - 1) {
       setCurrentPetIndex(currentPetIndex + 1);
     } else {
-      // Generate default household name
-      setHouseholdName(`The ${lastName} Family Pets`);
-      setStep("household");
+      finishSetup();
     }
   }
 
@@ -204,7 +205,7 @@ export default function JoinCommunity() {
         body: JSON.stringify({
           communityCode: communityCode.trim(),
           homeNumber: homeNumber.trim(),
-          displayName: confirmedName || householdName || `${firstName} ${lastName}`,
+          displayName: confirmedName || `${firstName} ${lastName}`.trim(),
           phone: phone.trim() || null,
           confirmMatch: !!confirmedName,
         }),
@@ -268,10 +269,16 @@ export default function JoinCommunity() {
               <p className="text-sm text-muted-foreground">Create your account to get started</p>
             </>
           )}
+          {step === "confirm" && (
+            <>
+              <h1 className="text-2xl font-serif font-bold">Hi, {firstName}!</h1>
+              <p className="text-sm text-muted-foreground">Your community manager set you up. Please confirm your info.</p>
+            </>
+          )}
           {step === "name" && (
             <>
               <h1 className="text-2xl font-serif font-bold">Welcome to {communityName}!</h1>
-              <p className="text-sm text-muted-foreground">Let's get you set up. First, what's your name?</p>
+              <p className="text-sm text-muted-foreground">Let's get you set up. What's your name?</p>
             </>
           )}
           {step === "home" && (
@@ -299,12 +306,6 @@ export default function JoinCommunity() {
                 {pets.length > 1 && <span className="text-sm font-normal text-muted-foreground ml-2">({currentPetIndex + 1} of {pets.length})</span>}
               </h1>
               <p className="text-sm text-muted-foreground">We'll use this info to create their portrait</p>
-            </>
-          )}
-          {step === "household" && (
-            <>
-              <h1 className="text-2xl font-serif font-bold">Almost done!</h1>
-              <p className="text-sm text-muted-foreground">What should we call your household?</p>
             </>
           )}
           {step === "nameConfirm" && (
@@ -392,7 +393,57 @@ export default function JoinCommunity() {
             </form>
           )}
 
-          {/* Name Step */}
+          {/* Confirm Step — admin pre-registered, info pre-filled */}
+          {step === "confirm" && (
+            <div className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input value={`${firstName} ${lastName}`.trim()} onChange={(e) => {
+                  const parts = e.target.value.split(" ");
+                  setFirstName(parts[0] || "");
+                  setLastName(parts.slice(1).join(" ") || "");
+                }} className="text-lg h-12" />
+              </div>
+              <div>
+                <Label>Home / Unit Number</Label>
+                <Input value={homeNumber} onChange={(e) => setHomeNumber(e.target.value)} className="text-lg h-12" />
+              </div>
+              {email && (
+                <div>
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                </div>
+              )}
+              {!email && (
+                <div>
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Add your email address" className="h-11" />
+                </div>
+              )}
+              {phone && (
+                <div>
+                  <Label>Phone</Label>
+                  <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11" />
+                </div>
+              )}
+              {!phone && (
+                <div>
+                  <Label>Phone</Label>
+                  <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Add your phone number" className="h-11" />
+                </div>
+              )}
+              <Button
+                size="lg"
+                className="w-full h-14 text-base gap-2"
+                disabled={!firstName.trim() || !homeNumber.trim()}
+                onClick={() => setStep("petCount")}
+              >
+                Looks Good — Let's Add My Pets <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Name Step — self-signup, no pre-fill */}
           {step === "name" && (
             <div className="space-y-4">
               <div>
@@ -514,34 +565,13 @@ export default function JoinCommunity() {
                   if (currentPetIndex > 0) setCurrentPetIndex(currentPetIndex - 1);
                   else setStep("petCount");
                 }} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
-                <Button onClick={nextPetOrHousehold} disabled={!currentPet.name.trim()} className="gap-1">
-                  {currentPetIndex < pets.length - 1 ? "Next Pet" : "Almost Done"}<ArrowRight className="h-4 w-4" />
+                <Button onClick={nextPetOrFinish} disabled={!currentPet.name.trim() || loading} className="gap-1">
+                  {loading ? "Setting up..." : currentPetIndex < pets.length - 1 ? "Next Pet" : <><Sparkles className="h-4 w-4" />Finish Setup</>}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Household Name Step */}
-          {step === "household" && (
-            <div className="space-y-4">
-              <div>
-                <Label>What should we call your household?</Label>
-                <Input value={householdName} onChange={(e) => setHouseholdName(e.target.value)} autoFocus />
-                <p className="text-xs text-muted-foreground mt-1">This is what shows on your dashboard</p>
-              </div>
-              <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                <p className="font-medium mb-1">Here's what we have:</p>
-                <p>{firstName} {lastName} · Home #{homeNumber}</p>
-                <p>{pets.filter(p => p.name).map(p => p.name).join(", ")}</p>
-              </div>
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => { setCurrentPetIndex(pets.length - 1); setStep("petDetail"); }} className="gap-1"><ArrowLeft className="h-4 w-4" />Back</Button>
-                <Button onClick={finishSetup} disabled={loading || !householdName.trim()} className="gap-2">
-                  {loading ? "Setting up..." : <><Sparkles className="h-4 w-4" />Let's Go!</>}
-                </Button>
-              </div>
-            </div>
-          )}
 
           {/* Name Confirmation Step — admin entered name differs from what resident typed */}
           {step === "nameConfirm" && (

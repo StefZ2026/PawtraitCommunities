@@ -25,7 +25,7 @@ export default function CommunityDashboard() {
   const token = session?.access_token;
   const [copied, setCopied] = useState(false);
   const [addResidentOpen, setAddResidentOpen] = useState(false);
-  const [addResStep, setAddResStep] = useState<"home" | "name" | "contact" | "done">("home");
+  const [addResStep, setAddResStep] = useState<"home">("home");
   const [newHomeNumber, setNewHomeNumber] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -75,8 +75,19 @@ export default function CommunityDashboard() {
     enabled: !!token && !!communityId,
   });
 
+  const commPref = community?.communicationPreference || "email"; // 'email' | 'text' | 'both'
+
   const addResidentMutation = useMutation({
     mutationFn: async () => {
+      // Validate required contact based on comm preference
+      if ((commPref === "email" || commPref === "both") && !newEmail.trim()) {
+        throw new Error("Email is required for this community");
+      }
+      if ((commPref === "text" || commPref === "both") && !newPhone.trim()) {
+        throw new Error("Phone number is required for this community");
+      }
+      if (!newDisplayName.trim()) throw new Error("Resident name is required");
+
       const res = await fetch(`/api/community/${communityId}/residents`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -85,10 +96,40 @@ export default function CommunityDashboard() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed"); }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/residents", communityId] });
       queryClient.invalidateQueries({ queryKey: ["/api/my-community-admin", orgId] });
-      setAddResStep("done");
+
+      // Auto-send invite based on community preference
+      let sent = false;
+      if ((commPref === "email" || commPref === "both") && newEmail.trim()) {
+        try {
+          await fetch("/api/email/send-invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ email: newEmail, residentName: newDisplayName, communityName: community?.name, communityCode: community?.communityCode }),
+          });
+          sent = true;
+        } catch {}
+      }
+      if ((commPref === "text" || commPref === "both") && newPhone.trim()) {
+        try {
+          await fetch("/api/sms/send-invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ phone: newPhone, residentName: newDisplayName, communityName: community?.name, communityCode: community?.communityCode }),
+          });
+          sent = true;
+        } catch {}
+      }
+
+      if (sent) {
+        toast({ title: "Resident added & invite sent!", description: `${newDisplayName} has been invited to join.` });
+      } else {
+        toast({ title: "Resident added", description: "No invite was sent — check contact info." });
+      }
+      setAddResidentOpen(false);
+      setAddResStep("home"); setNewHomeNumber(""); setNewDisplayName(""); setNewEmail(""); setNewPhone("");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -214,83 +255,42 @@ export default function CommunityDashboard() {
                   <DialogContent>
                     {addResStep === "home" && (
                       <>
-                        <DialogHeader><DialogTitle>What's their home or unit number?</DialogTitle></DialogHeader>
+                        <DialogHeader><DialogTitle>Add a New Resident</DialogTitle></DialogHeader>
                         <div className="space-y-4">
-                          <Input value={newHomeNumber} onChange={(e) => setNewHomeNumber(e.target.value)} placeholder="e.g. 147 or Unit B" autoFocus className="text-lg h-12" />
-                          <Button size="lg" className="w-full text-base" disabled={!newHomeNumber.trim()} onClick={() => setAddResStep("name")}>Next</Button>
-                        </div>
-                      </>
-                    )}
-                    {addResStep === "name" && (
-                      <>
-                        <DialogHeader><DialogTitle>What's the resident's name?</DialogTitle></DialogHeader>
-                        <div className="space-y-4">
-                          <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Sarah Jones" autoFocus className="text-lg h-12" />
-                          <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => setAddResStep("home")}>Back</Button>
-                            <Button size="lg" className="flex-1 text-base" onClick={() => setAddResStep("contact")}>Next</Button>
+                          <div>
+                            <Label>Home / Unit Number</Label>
+                            <Input value={newHomeNumber} onChange={(e) => setNewHomeNumber(e.target.value)} placeholder="e.g. 449 or Unit B" autoFocus className="text-lg h-12" />
                           </div>
-                        </div>
-                      </>
-                    )}
-                    {addResStep === "contact" && (
-                      <>
-                        <DialogHeader><DialogTitle>How can we reach them?</DialogTitle></DialogHeader>
-                        <div className="space-y-4">
-                          <div><Label>Email</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Optional — we'll send the invite here" className="h-11" /></div>
-                          <div><Label>Phone</Label><Input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Optional" className="h-11" /></div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => setAddResStep("name")}>Back</Button>
-                            <Button size="lg" className="flex-1 text-base" disabled={addResidentMutation.isPending} onClick={() => addResidentMutation.mutate()}>
-                              {addResidentMutation.isPending ? "Adding..." : "Add & Send Invite"}
-                            </Button>
+                          <div>
+                            <Label>Resident Name</Label>
+                            <Input value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)} placeholder="e.g. Sandy Schnee" className="text-lg h-12" />
                           </div>
-                        </div>
-                      </>
-                    )}
-                    {addResStep === "done" && (
-                      <>
-                        <DialogHeader><DialogTitle>Resident Added!</DialogTitle></DialogHeader>
-                        <div className="space-y-4">
-                          <p className="text-muted-foreground text-center">{newDisplayName || `Home #${newHomeNumber}`} has been added. How would you like to send them the invite?</p>
-                          <div className="space-y-2">
-                            {newEmail && (
-                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" onClick={async () => {
-                                try {
-                                  const res = await fetch("/api/email/send-invite", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                                    body: JSON.stringify({ email: newEmail, residentName: newDisplayName, communityName: community?.name, communityCode: community?.communityCode }),
-                                  });
-                                  const data = await res.json();
-                                  if (res.ok) toast({ title: "Email sent!", description: data.note || `Invite sent to ${newEmail}` });
-                                  else toast({ title: "Error", description: data.error || "Failed to send email", variant: "destructive" });
-                                } catch { toast({ title: "Error", description: "Failed to send email", variant: "destructive" }); }
-                              }}>
-                                <Mail className="h-5 w-5" />Send Email to {newEmail}
-                              </Button>
-                            )}
-                            {newPhone && (
-                              <Button variant="outline" className="w-full gap-2 h-12 text-base justify-start" onClick={async () => {
-                                try {
-                                  const res = await fetch("/api/sms/send-invite", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                                    body: JSON.stringify({ phone: newPhone, residentName: newDisplayName, communityName: community?.name, communityCode: community?.communityCode }),
-                                  });
-                                  const data = await res.json();
-                                  if (res.ok) toast({ title: "Text sent!", description: `Invite sent to ${newPhone}` });
-                                  else toast({ title: "Error", description: data.error || "Failed to send text", variant: "destructive" });
-                                } catch { toast({ title: "Error", description: "Failed to send text", variant: "destructive" }); }
-                              }}>
-                                <MessageSquare className="h-5 w-5" />Send Text to {newPhone}
-                              </Button>
-                            )}
-                            {!newEmail && !newPhone && (
-                              <p className="text-sm text-amber-600 text-center">No email or phone provided — go back and add one so we can send the invite.</p>
-                            )}
-                          </div>
-                          <Button className="w-full" onClick={() => setAddResidentOpen(false)}>Done</Button>
+                          {(commPref === "email" || commPref === "both") && (
+                            <div>
+                              <Label>Email {commPref === "both" ? "" : "(required)"}</Label>
+                              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Their email address" className="h-11" />
+                            </div>
+                          )}
+                          {(commPref === "text" || commPref === "both") && (
+                            <div>
+                              <Label>Phone {commPref === "both" ? "" : "(required)"}</Label>
+                              <Input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Their cell phone number" className="h-11" />
+                            </div>
+                          )}
+                          <Button
+                            size="lg"
+                            className="w-full text-base h-14"
+                            disabled={
+                              !newHomeNumber.trim() ||
+                              !newDisplayName.trim() ||
+                              ((commPref === "email" || commPref === "both") && !newEmail.trim()) ||
+                              ((commPref === "text" || commPref === "both") && !newPhone.trim()) ||
+                              addResidentMutation.isPending
+                            }
+                            onClick={() => addResidentMutation.mutate()}
+                          >
+                            {addResidentMutation.isPending ? "Adding & sending invite..." : "Add Resident & Send Invite"}
+                          </Button>
                         </div>
                       </>
                     )}

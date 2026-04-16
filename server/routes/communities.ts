@@ -121,6 +121,7 @@ export function registerCommunityRoutes(app: Express): void {
         id: org.id, name: org.name, slug: org.slug,
         communityCode: org.community_code, totalHomes: org.total_homes,
         contactName: org.contact_name, contactEmail: org.contact_email,
+        communicationPreference: org.communication_preference || "email",
         subscriptionStatus: org.subscription_status, subscriptionEndDate: org.subscription_end_date,
         planName: plan?.name || null,
         residentCount: Number(r.rows[0]?.count || 0),
