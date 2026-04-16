@@ -83,7 +83,7 @@ export const PRODUCTS: Record<string, ProductConfig> = {
       { id: 4015, name: "2XL", retailPriceCents: 3299, wholesaleCostCents: 1369 },
       { id: 5294, name: "3XL", retailPriceCents: 3499, wholesaleCostCents: 1569 },
     ],
-    fileType: "default", fileWidth: 4500, fileHeight: 5400,
+    fileType: "front", fileWidth: 4500, fileHeight: 5400,
   },
 };
 

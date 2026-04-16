@@ -162,11 +162,14 @@ export function registerMerchRoutes(app: Express): void {
           );
           await pool.query("UPDATE merch_orders SET external_order_id = $1, status = 'submitted' WHERE id = $2", [gelatoOrder.id, order.id]);
         } else if (isPrintfulConfigured()) {
-          const printfulItems = items.map((item: any) => ({
-            variant_id: item.variant_id,
-            quantity: item.quantity,
-            files: [{ type: "default", url: item.artwork_url }],
-          }));
+          const printfulItems = items.map((item: any) => {
+            const prod = getProduct(item.product_key);
+            return {
+              variant_id: item.variant_id,
+              quantity: item.quantity,
+              files: [{ type: prod?.fileType || "default", url: item.artwork_url }],
+            };
+          });
           const printfulOrder = await createPrintfulOrder(
             { name: order.customer_name, address1: order.shipping_street, city: order.shipping_city, state_code: order.shipping_state, zip: order.shipping_zip, country_code: order.shipping_country || "US", email: order.customer_email },
             printfulItems, true
@@ -250,7 +253,7 @@ export function registerMerchRoutes(app: Express): void {
         if (!variant) return res.status(400).json({ error: `Unknown variant` });
         const qty = item.quantity || 1;
         totalWholesaleCents += variant.wholesaleCostCents * qty;
-        printfulItems.push({ variant_id: variant.id, quantity: qty, files: [{ type: "default", url: portrait.generatedImageUrl }] });
+        printfulItems.push({ variant_id: variant.id, quantity: qty, files: [{ type: product.fileType || "default", url: portrait.generatedImageUrl }] });
       }
 
       // Create order record
