@@ -70,6 +70,21 @@ export const PRODUCTS: Record<string, ProductConfig> = {
     ],
     fileType: "default", fileWidth: 1200, fileHeight: 2000,
   },
+  "tshirt": {
+    key: "tshirt",
+    name: "Unisex T-Shirt",
+    printfulProductId: 71,
+    variants: [
+      { id: 9526, name: "XS", retailPriceCents: 2999, wholesaleCostCents: 1169 },
+      { id: 4011, name: "S", retailPriceCents: 2999, wholesaleCostCents: 1169 },
+      { id: 4012, name: "M", retailPriceCents: 2999, wholesaleCostCents: 1169 },
+      { id: 4013, name: "L", retailPriceCents: 2999, wholesaleCostCents: 1169 },
+      { id: 4014, name: "XL", retailPriceCents: 2999, wholesaleCostCents: 1169 },
+      { id: 4015, name: "2XL", retailPriceCents: 3299, wholesaleCostCents: 1369 },
+      { id: 5294, name: "3XL", retailPriceCents: 3499, wholesaleCostCents: 1569 },
+    ],
+    fileType: "default", fileWidth: 4500, fileHeight: 5400,
+  },
 };
 
 export function getProduct(key: string): ProductConfig | undefined {
